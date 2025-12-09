@@ -5,9 +5,10 @@ interface StepIndicatorProps {
   steps: string[];
   currentStep: number;
   onNextStep: () => void;
+  onReset: () => void;
 }
 
-const StepIndicator: React.FC<StepIndicatorProps> = ({ steps, currentStep, onNextStep }) => {
+const StepIndicator: React.FC<StepIndicatorProps> = ({ steps, currentStep, onNextStep, onReset }) => {
   const isFinished = currentStep >= steps.length;
 
   return (
@@ -37,9 +38,15 @@ const StepIndicator: React.FC<StepIndicatorProps> = ({ steps, currentStep, onNex
       </div>
 
       <div className="controls">
-        <button onClick={onNextStep} disabled={isFinished}>
-          {isFinished ? 'Completed' : 'Next Step'}
-        </button>
+        {isFinished ? (
+          <button onClick={onReset} style={{ background: '#4f46e5' }}>
+            Start Again
+          </button>
+        ) : (
+          <button onClick={onNextStep}>
+            Next Step
+          </button>
+        )}
       </div>
     </div>
   );

@@ -31,6 +31,7 @@ function App() {
           steps={steps} 
           currentStep={currentStep} 
           onNextStep={() => setCurrentStep(prev => Math.min(prev + 1, steps.length))} 
+          onReset={() => setCurrentStep(0)}
         />
         
         <div style={{ flex: 1, position: 'relative' }}>
