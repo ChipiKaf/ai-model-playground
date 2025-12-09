@@ -13,10 +13,15 @@ const NeuronDetail: React.FC<NeuronDetailProps> = ({ data, onClose }) => {
   // Calculate Weighted Sum (re-calculate for display, though we have output)
   // Note: output might be ReLU(sum), so we want the raw sum for Step 1
   const isInputLayer = layerIndex === 0;
+
+  // Use rounded values for calculation to match the display
+  const roundedInputs = inputs.map((v) => parseFloat(v.toFixed(2)));
+  const roundedWeights = weights.map((w) => parseFloat(w.toFixed(2)));
+  const roundedBias = parseFloat(bias.toFixed(2));
   
   const weightedSum = isInputLayer
     ? output // For input layer, "sum" is just the value
-    : inputs.reduce((acc, val, idx) => acc + val * weights[idx], 0) + bias;
+    : roundedInputs.reduce((acc, val, idx) => acc + val * roundedWeights[idx], 0) + roundedBias;
 
   // Activation Function (ReLU)
   const activation = isInputLayer ? output : Math.max(0, weightedSum);
@@ -50,16 +55,16 @@ const NeuronDetail: React.FC<NeuronDetailProps> = ({ data, onClose }) => {
                     ) : (
                       inputs.map((input, idx) => (
                         <div key={idx} className="input-group">
-                          <span className="value">{input.toFixed(1)}</span>
+                          <span className="value">{input.toFixed(2)}</span>
                           <span className="operator">&times;</span>
-                          <span className="weight">{weights[idx].toFixed(1)}</span>
+                          <span className="weight">{weights[idx].toFixed(2)}</span>
                           {idx < inputs.length - 1 && <span className="operator" style={{marginLeft: '0.5rem'}}>+</span>}
                         </div>
                       ))
                     )}
                     <span className="operator">+</span>
                     <div className="input-group">
-                      <span className="value">{bias.toFixed(1)}</span>
+                      <span className="value">{bias.toFixed(2)}</span>
                       <span className="weight">(Bias)</span>
                     </div>
                     <span className="operator">=</span>

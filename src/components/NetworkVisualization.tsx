@@ -393,14 +393,14 @@ const NetworkVisualization: React.FC<NetworkVisualizationProps> = ({
             if (isVisible) {
               if (val.state === 'sum') {
                 neuronClass += val.sum < 0 ? ' negative' : ' positive';
-                displayValue = val.sum.toFixed(1);
+                displayValue = val.sum.toFixed(2);
               } else {
                 if (val.output === 0) {
                   neuronClass += ' inactive';
-                  displayValue = '0.0';
+                  displayValue = '0.00';
                 } else {
                   neuronClass += ' positive';
-                  displayValue = val.output.toFixed(1);
+                  displayValue = val.output.toFixed(2);
                 }
               }
             }
