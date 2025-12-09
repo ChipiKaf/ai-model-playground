@@ -34,7 +34,57 @@
       stroke: #818cf8;
       filter: drop-shadow(0 0 8px rgba(99, 102, 241, 0.6));
     }
+
+    &.active {
+      fill: #4f46e5; // Indigo-600
+      stroke: #a5b4fc; // Indigo-300
+      filter: drop-shadow(0 0 12px rgba(99, 102, 241, 0.9));
+      // Removed scale animation to prevent jumping
+      transition: fill 0.3s ease, stroke 0.3s ease, filter 0.3s ease;
+    }
   }
+
+  .signal {
+    fill: #fbbf24; // Amber-400
+    filter: drop-shadow(0 0 6px rgba(251, 191, 36, 1)); // Stronger glow
+    pointer-events: none;
+    // Smaller radius will be handled in TSX, but visual style here
+    opacity: 0.9;
+  }
+
+  .controls {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 1rem;
+    z-index: 10;
+
+    button {
+      background: #4f46e5;
+      color: white;
+      border: none;
+      padding: 0.75rem 1.5rem;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+
+      &:hover {
+        background: #4338ca;
+      }
+
+      &:disabled {
+        background: #374151;
+        cursor: not-allowed;
+        opacity: 0.7;
+      }
+    }
+  }
+  
+  // Removed @keyframes pulse since we aren't using it for scale anymore
 
   .layer-label {
     fill: #9ca3af;
