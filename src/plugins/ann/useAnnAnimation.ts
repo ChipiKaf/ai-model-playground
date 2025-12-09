@@ -1,13 +1,13 @@
 import { useState, useEffect, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { type RootState } from '../store/store';
+import { type RootState } from '../../store/store';
 import { 
   updateNeuronValues, 
   resetNeuronValues, 
   selectAllNeurons, 
   selectAllConnections,
   type NeuronValue
-} from '../store/slices/networkSlice';
+} from './annSlice';
 
 export interface Signal {
   id: string;
@@ -22,7 +22,7 @@ export interface Signal {
   sourceOutput: number;
 }
 
-export const useNetworkAnimation = (onAnimationComplete?: () => void) => {
+export const useAnnAnimation = (onAnimationComplete?: () => void) => {
   const dispatch = useDispatch();
   const { layerSizes, neuronValues } = useSelector((state: RootState) => state.network);
   const neurons = useSelector(selectAllNeurons);

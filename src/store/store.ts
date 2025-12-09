@@ -1,10 +1,10 @@
 import { configureStore } from '@reduxjs/toolkit';
-import networkReducer from './slices/networkSlice';
 import simulationReducer from './slices/simulationSlice';
+import AnnPlugin from '../plugins/ann';
 
 export const store = configureStore({
   reducer: {
-    network: networkReducer,
+    network: AnnPlugin.reducer, // For now, we hardcode 'network' to ANN. Later we can make this dynamic.
     simulation: simulationReducer,
   },
 });

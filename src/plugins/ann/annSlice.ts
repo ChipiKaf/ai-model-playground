@@ -1,5 +1,5 @@
 import { createSlice, createEntityAdapter, type PayloadAction, type EntityState } from '@reduxjs/toolkit';
-import type { RootState } from '../store';
+import type { RootState } from '../../store/store';
 
 export interface NeuronPosition {
   id: string; // `${layerIndex}-${neuronIndex}`

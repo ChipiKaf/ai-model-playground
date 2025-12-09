@@ -1,5 +1,5 @@
 import React from 'react';
-import type { NeuronData } from './NetworkVisualization';
+import type { NeuronData } from '../plugins/ann/AnnVisualization';
 import './NeuronDetail.scss';
 
 interface NeuronDetailProps {
@@ -15,13 +15,13 @@ const NeuronDetail: React.FC<NeuronDetailProps> = ({ data, onClose }) => {
   const isInputLayer = layerIndex === 0;
 
   // Use rounded values for calculation to match the display
-  const roundedInputs = inputs.map((v) => parseFloat(v.toFixed(2)));
-  const roundedWeights = weights.map((w) => parseFloat(w.toFixed(2)));
+  const roundedInputs = inputs.map((v: number) => parseFloat(v.toFixed(2)));
+  const roundedWeights = weights.map((w: number) => parseFloat(w.toFixed(2)));
   const roundedBias = parseFloat(bias.toFixed(2));
   
   const weightedSum = isInputLayer
     ? output // For input layer, "sum" is just the value
-    : roundedInputs.reduce((acc, val, idx) => acc + val * roundedWeights[idx], 0) + roundedBias;
+    : roundedInputs.reduce((acc: number, val: number, idx: number) => acc + val * roundedWeights[idx], 0) + roundedBias;
 
   // Activation Function (ReLU)
   const activation = isInputLayer ? output : Math.max(0, weightedSum);
@@ -53,7 +53,7 @@ const NeuronDetail: React.FC<NeuronDetailProps> = ({ data, onClose }) => {
                         <span className="value">No Inputs</span>
                       </div>
                     ) : (
-                      inputs.map((input, idx) => (
+                      inputs.map((input: number, idx: number) => (
                         <div key={idx} className="input-group">
                           <span className="value">{input.toFixed(2)}</span>
                           <span className="operator">&times;</span>

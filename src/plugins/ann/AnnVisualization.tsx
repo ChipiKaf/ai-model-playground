@@ -1,8 +1,8 @@
 import React from 'react';
 import { useDispatch } from 'react-redux';
-import './NetworkVisualization.scss';
-import { selectNeuron } from '../store/slices/simulationSlice';
-import { useNetworkAnimation } from '../hooks/useNetworkAnimation';
+import './AnnVisualization.scss';
+import { selectNeuron } from '../../store/slices/simulationSlice';
+import { useAnnAnimation } from './useAnnAnimation';
 
 interface NetworkVisualizationProps {
   onAnimationComplete?: () => void;
@@ -28,7 +28,7 @@ const NetworkVisualization: React.FC<NetworkVisualizationProps> = ({
     connections, 
     neuronValues, 
     layerSizes 
-  } = useNetworkAnimation(onAnimationComplete);
+  } = useAnnAnimation(onAnimationComplete);
 
   // Constants for layout
   const width = 800;
@@ -151,7 +151,7 @@ const NetworkVisualization: React.FC<NetworkVisualizationProps> = ({
 
         {/* Layer Labels */}
         <g className="labels">
-          {layerSizes.map((_, idx) => {
+          {layerSizes.map((_: number, idx: number) => {
             const layerNeuron = neurons.find((n) => n.layerIndex === idx);
             if (!layerNeuron) return null;
 
