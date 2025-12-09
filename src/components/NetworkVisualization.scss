@@ -87,7 +87,7 @@
   // Removed @keyframes pulse since we aren't using it for scale anymore
 
   .idle-flow {
-    stroke: #6b7280; // Gray-500, slightly lighter than base connection
+    stroke: #6b7280; // slightly lighter than base connection
     stroke-width: 1; // Same thickness as connection
     stroke-dasharray: 10 20; // Short dashes
     animation: dash 3s linear infinite; // Slow movement
