@@ -106,7 +106,7 @@ const NetworkVisualization: React.FC<NetworkVisualizationProps> = ({
             }
 
             return (
-              <g key={`neuron-group-${neuron.layerIndex}-${neuron.neuronIndex}`}>
+              <g key={`neuron-group-${neuron.layerIndex}-${neuron.neuronIndex}`} className="neuron-group">
                 <circle
                   cx={neuron.x}
                   cy={neuron.y}

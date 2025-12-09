@@ -34,7 +34,6 @@ Follow these steps to get the project running locally:
     git clone <repository-url>
     cd ai-model-playground
     ```
-    *(Note: If you cloned the repo with the old name, the directory might still be `nn-ctm-playground`)*
 
 2.  **Install dependencies**
 

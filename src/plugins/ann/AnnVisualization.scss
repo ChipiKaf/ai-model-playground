@@ -91,6 +91,26 @@
       stroke: #cbd5e1;
     }
   }
+  
+  .neuron-group {
+    &:hover {
+      .neuron {
+        filter: drop-shadow(0 0 8px rgba(59, 130, 246, 0.6));
+        stroke: #2563eb;
+        stroke-width: 3;
+      }
+
+      .neuron.negative {
+        filter: drop-shadow(0 0 8px rgba(239, 68, 68, 0.6));
+        stroke: #dc2626;
+      }
+
+      .neuron-value {
+        opacity: 1;
+        font-weight: bold;
+      }
+    }
+  }
 
   .neuron-value {
     font-size: 10px;
