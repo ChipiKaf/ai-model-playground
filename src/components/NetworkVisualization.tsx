@@ -62,6 +62,7 @@ const NetworkVisualization: React.FC<NetworkVisualizationProps> = ({
     Record<string, { sum: number; output: number; state: 'sum' | 'active' }>
   >({});
   const animationRef = useRef<number | undefined>(undefined);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   // Calculate positions of all neurons
   const neurons: NeuronPosition[] = useMemo(() => {
@@ -142,6 +143,16 @@ const NetworkVisualization: React.FC<NetworkVisualizationProps> = ({
 
   // Handle Step Changes
   useEffect(() => {
+    // Cancel any ongoing animations or timeouts when step changes
+    if (animationRef.current) {
+      cancelAnimationFrame(animationRef.current);
+      animationRef.current = undefined;
+    }
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = undefined;
+    }
+
     if (currentStep === 0) {
       // Always initialize/randomize Input Layer at step 0
       setNeuronValues({});
@@ -202,7 +213,7 @@ const NetworkVisualization: React.FC<NetworkVisualizationProps> = ({
         return next;
       });
 
-      setTimeout(() => {
+      timeoutRef.current = setTimeout(() => {
         setNeuronValues((prev) => {
           const next = { ...prev };
           currentLayerNeurons.forEach((neuron) => {
@@ -215,6 +226,7 @@ const NetworkVisualization: React.FC<NetworkVisualizationProps> = ({
           });
           return next;
         });
+        timeoutRef.current = undefined;
       }, 1000);
     } else {
       // Signal Transmission
@@ -296,6 +308,7 @@ const NetworkVisualization: React.FC<NetworkVisualizationProps> = ({
   useEffect(() => {
     return () => {
       if (animationRef.current) cancelAnimationFrame(animationRef.current);
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
     };
   }, []);
 
