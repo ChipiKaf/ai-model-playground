@@ -1,12 +1,12 @@
-import React, { useMemo, useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import './NetworkVisualization.scss';
+import { type RootState } from '../store/store';
+import { updateNeuronValues, resetNeuronValues } from '../store/slices/networkSlice';
+import { selectNeuron } from '../store/slices/simulationSlice';
 
 interface NetworkVisualizationProps {
-  layerSizes: number[];
-  currentStep: number;
-  onNeuronSelect?: (data: NeuronData) => void;
   onAnimationComplete?: () => void;
-  passCount?: number;
 }
 
 export interface NeuronData {
@@ -18,14 +18,6 @@ export interface NeuronData {
   weights: number[];
 }
 
-interface NeuronPosition {
-  x: number;
-  y: number;
-  layerIndex: number;
-  neuronIndex: number;
-  bias: number; // Fixed bias for this neuron
-}
-
 interface Signal {
   id: string;
   x: number;
@@ -34,112 +26,29 @@ interface Signal {
   targetY: number;
   progress: number; // 0 to 1
   weight?: number;
-
-  // NEW: info about the source neuron so all signals from it can share size
   sourceLayer: number;
   sourceIndex: number;
-  sourceOutput: number; // the neuron's activation/output value
+  sourceOutput: number;
 }
 
 const NetworkVisualization: React.FC<NetworkVisualizationProps> = ({
-  layerSizes,
-  currentStep,
-  onNeuronSelect,
   onAnimationComplete,
-  passCount = 1,
 }) => {
+  const dispatch = useDispatch();
+  const { layerSizes, neurons, connections, neuronValues } = useSelector((state: RootState) => state.network);
+  const { currentStep, passCount } = useSelector((state: RootState) => state.simulation);
+
   // Constants for layout
   const width = 800;
   const height = 600;
-  const paddingX = 100;
-  const paddingY = 50;
   const neuronRadius = 15;
 
-  // Animation State
+  // Animation State (Visual only)
   const [activeLayer, setActiveLayer] = useState<number | null>(null);
   const [signals, setSignals] = useState<Signal[]>([]);
-  const [neuronValues, setNeuronValues] = useState<
-    Record<string, { sum: number; output: number; state: 'sum' | 'active' }>
-  >({});
+  
   const animationRef = useRef<number | undefined>(undefined);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-
-  // Calculate positions of all neurons
-  const neurons: NeuronPosition[] = useMemo(() => {
-    const positions: NeuronPosition[] = [];
-
-    const layerSpacing = (width - 2 * paddingX) / (layerSizes.length - 1);
-
-    layerSizes.forEach((size, layerIndex) => {
-      const x = paddingX + layerIndex * layerSpacing;
-      const layerHeight = height - 2 * paddingY;
-      const neuronSpacing = layerHeight / (size + 1);
-
-      for (let i = 0; i < size; i++) {
-        positions.push({
-          x,
-          y: paddingY + (i + 1) * neuronSpacing,
-          layerIndex,
-          neuronIndex: i,
-          bias: Math.random() * 0.4 - 0.2, // Random bias between -0.2 and 0.2
-        });
-      }
-    });
-
-    return positions;
-  }, [layerSizes]);
-
-  // Generate connections
-  const connections = useMemo(() => {
-    const lines: {
-      x1: number;
-      y1: number;
-      x2: number;
-      y2: number;
-      key: string;
-      sourceLayer: number;
-      sourceIndex: number;
-      targetIndex: number;
-      weight: number;
-    }[] = [];
-
-    for (let l = 0; l < layerSizes.length - 1; l++) {
-      const currentLayerNeurons = neurons.filter((n) => n.layerIndex === l);
-      const nextLayerNeurons = neurons.filter((n) => n.layerIndex === l + 1);
-
-      currentLayerNeurons.forEach((source) => {
-        nextLayerNeurons.forEach((target) => {
-          const seed = l * 1000 + source.neuronIndex * 100 + target.neuronIndex;
-
-          // Deterministic pseudo-random in [0, 1)
-          const raw = Math.sin(seed) * 43758.5453123;
-          const pseudoRandom = raw - Math.floor(raw); // 0..1
-
-          // Base weight in [-1, 1]
-          const base = pseudoRandom * 2 - 1;
-
-          // 🔹 Slight bias towards positive:
-          // shift distribution right by ~0.25 then clamp back to [-1, 1]
-          const bias = 0.25; // tweak this (0.1 .. 0.3) to taste
-          let signedWeight = base + bias;
-          signedWeight = Math.max(-1, Math.min(1, signedWeight));
-
-          lines.push({
-            x1: source.x,
-            y1: source.y,
-            x2: target.x,
-            y2: target.y,
-            key: `l${l}-n${source.neuronIndex}-to-l${l + 1}-n${target.neuronIndex}`,
-            sourceLayer: l,
-            sourceIndex: source.neuronIndex,
-            targetIndex: target.neuronIndex,
-            weight: signedWeight,
-          });
-        });
-      });
-    }
-    return lines;
-  }, [layerSizes, neurons]);
 
   // Handle Step Changes
   useEffect(() => {
@@ -154,21 +63,22 @@ const NetworkVisualization: React.FC<NetworkVisualizationProps> = ({
     }
 
     if (currentStep === 0) {
-      // Always initialize/randomize Input Layer at step 0
-      setNeuronValues({});
-      const newValues: Record<
-        string,
-        { sum: number; output: number; state: 'active' }
-      > = {};
-      for (let i = 0; i < layerSizes[0]; i++) {
-        const val = Math.random();
-        newValues[`0-${i}`] = {
-          sum: val,
-          output: val,
-          state: 'active',
-        }; // Input layer
+      // Initialize Input Layer
+      dispatch(resetNeuronValues());
+      const newValues: Record<string, { sum: number; output: number; state: 'sum' | 'active' }> = {};
+      
+      // We need to know how many inputs. layerSizes[0]
+      if (layerSizes.length > 0) {
+        for (let i = 0; i < layerSizes[0]; i++) {
+          const val = Math.random();
+          newValues[`0-${i}`] = {
+            sum: val,
+            output: val,
+            state: 'active',
+          };
+        }
+        dispatch(updateNeuronValues(newValues));
       }
-      setNeuronValues(newValues as any);
 
       setActiveLayer(0);
       setSignals([]);
@@ -183,68 +93,163 @@ const NetworkVisualization: React.FC<NetworkVisualizationProps> = ({
       );
       const prevLayerIndex = layerIndex - 1;
 
-      setNeuronValues((prev) => {
-        const next = { ...prev };
+      // Calculate sums immediately
+      const nextValues: Record<string, { sum: number; output: number; state: 'sum' | 'active' }> = {};
 
-        currentLayerNeurons.forEach((neuron) => {
-          const incomingConnections = connections.filter(
-            (c) =>
-              c.targetIndex === neuron.neuronIndex &&
-              c.sourceLayer === prevLayerIndex
-          );
+      currentLayerNeurons.forEach((neuron) => {
+        const incomingConnections = connections.filter(
+          (c) =>
+            c.targetIndex === neuron.neuronIndex &&
+            c.sourceLayer === prevLayerIndex
+        );
 
-          let weightedSum = 0;
-          incomingConnections.forEach((conn) => {
-            const sourceVal =
-              prev[`${prevLayerIndex}-${conn.sourceIndex}`]?.output || 0;
-            weightedSum += sourceVal * conn.weight;
-          });
-
-          // Bias (fixed per neuron)
-          weightedSum += neuron.bias;
-
-          next[`${layerIndex}-${neuron.neuronIndex}`] = {
-            sum: weightedSum,
-            output: weightedSum, // placeholder before activation
-            state: 'sum',
-          };
+        let weightedSum = 0;
+        incomingConnections.forEach((conn) => {
+          const sourceVal =
+            neuronValues[`${prevLayerIndex}-${conn.sourceIndex}`]?.output || 0;
+          weightedSum += sourceVal * conn.weight;
         });
 
-        return next;
+        // Bias
+        weightedSum += neuron.bias;
+
+        nextValues[`${layerIndex}-${neuron.neuronIndex}`] = {
+          sum: weightedSum,
+          output: weightedSum, // placeholder
+          state: 'sum',
+        };
       });
 
+      dispatch(updateNeuronValues(nextValues));
+
+      // Activate after delay
       timeoutRef.current = setTimeout(() => {
-        setNeuronValues((prev) => {
-          const next = { ...prev };
-          currentLayerNeurons.forEach((neuron) => {
-            const key = `${layerIndex}-${neuron.neuronIndex}`;
-            const current = next[key];
-            if (current) {
-              const output = Math.max(0, current.sum); // ReLU
-              next[key] = { ...current, output, state: 'active' };
-            }
-          });
-          return next;
+        const activatedValues: Record<string, { sum: number; output: number; state: 'sum' | 'active' }> = {};
+        currentLayerNeurons.forEach((neuron) => {
+          const key = `${layerIndex}-${neuron.neuronIndex}`;
+          const current = nextValues[key] || neuronValues[key]; // Use calculated or existing
+          if (current) {
+             // Re-read sum from nextValues to be safe, or just recalculate/use current
+             // Since we just dispatched nextValues, we can use it.
+            const output = Math.max(0, current.sum); // ReLU
+            activatedValues[key] = { ...current, output, state: 'active' };
+          }
         });
+        dispatch(updateNeuronValues(activatedValues));
         timeoutRef.current = undefined;
       }, 1000);
+
     } else {
       // Signal Transmission
       const sourceLayerIndex = (currentStep - 1) / 2;
       setActiveLayer(null);
-
-      let valuesForSignal = neuronValues;
-
-      createSignals(sourceLayerIndex, valuesForSignal);
+      createSignals(sourceLayerIndex, neuronValuesRef.current);
     }
-  }, [currentStep, connections, layerSizes, passCount, neurons]);
+  }, [currentStep, passCount, layerSizes, neurons, connections, dispatch]); // Removed neuronValues from dependency to avoid infinite loop if we are careful, but we need it for calculation.
+  // Wait, if we depend on neuronValues, and we update it, we trigger effect again?
+  // The effect depends on `currentStep`. We only want to run this logic when `currentStep` changes.
+  // So we should NOT include `neuronValues` in the dependency array for the MAIN logic, 
+  // OR we should use a ref for the latest neuronValues, 
+  // OR we should rely on the fact that we only dispatch when step changes.
+  // Actually, `neuronValues` is needed for calculation. 
+  // If we include it, `updateNeuronValues` will trigger this effect again.
+  // We must be careful.
+  // The logic `if (currentStep === 0)` etc runs on every render if dependencies change.
+  // If `neuronValues` changes, we don't want to re-run the step logic.
+  // We only want to run when `currentStep` changes.
+  // So I will remove `neuronValues` from the dependency array and use `store.getState()` or a ref, 
+  // OR better: use a separate `useEffect` for the step logic that only depends on `currentStep`.
+  // But inside that effect, I need the *current* `neuronValues`.
+  // I can use a ref to track `neuronValues`.
+
+  const neuronValuesRef = useRef(neuronValues);
+  useEffect(() => {
+      neuronValuesRef.current = neuronValues;
+  }, [neuronValues]);
+
+  // Re-implementing the main effect with refs for values
+  useEffect(() => {
+    // ... (same logic but use neuronValuesRef.current)
+    // Actually, let's just copy the logic and fix the access.
+    
+    if (animationRef.current) {
+      cancelAnimationFrame(animationRef.current);
+      animationRef.current = undefined;
+    }
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = undefined;
+    }
+
+    if (currentStep === 0) {
+       // ... (init logic doesn't need prev values)
+       dispatch(resetNeuronValues());
+       // ...
+       if (layerSizes.length > 0) {
+        const newValues: Record<string, any> = {};
+        for (let i = 0; i < layerSizes[0]; i++) {
+          const val = Math.random();
+          newValues[`0-${i}`] = { sum: val, output: val, state: 'active' };
+        }
+        dispatch(updateNeuronValues(newValues));
+       }
+       setActiveLayer(0);
+       setSignals([]);
+    } else if (currentStep % 2 === 0) {
+        // Activation
+        const layerIndex = currentStep / 2;
+        setActiveLayer(layerIndex);
+        setSignals([]);
+        
+        const prevLayerIndex = layerIndex - 1;
+        const currentVals = neuronValuesRef.current; // Use Ref
+        
+        const currentLayerNeurons = neurons.filter(n => n.layerIndex === layerIndex);
+        const nextValues: Record<string, any> = {};
+
+        currentLayerNeurons.forEach((neuron) => {
+            const incoming = connections.filter(c => c.targetIndex === neuron.neuronIndex && c.sourceLayer === prevLayerIndex);
+            let sum = 0;
+            incoming.forEach(conn => {
+                const sVal = currentVals[`${prevLayerIndex}-${conn.sourceIndex}`]?.output || 0;
+                sum += sVal * conn.weight;
+            });
+            sum += neuron.bias;
+            nextValues[`${layerIndex}-${neuron.neuronIndex}`] = { sum, output: sum, state: 'sum' };
+        });
+        
+        dispatch(updateNeuronValues(nextValues));
+
+        timeoutRef.current = setTimeout(() => {
+            const activated: Record<string, any> = {};
+            currentLayerNeurons.forEach(neuron => {
+                const key = `${layerIndex}-${neuron.neuronIndex}`;
+                const curr = nextValues[key]; // safe to use local var
+                if (curr) {
+                    const out = Math.max(0, curr.sum);
+                    activated[key] = { ...curr, output: out, state: 'active' };
+                }
+            });
+            dispatch(updateNeuronValues(activated));
+            timeoutRef.current = undefined;
+        }, 1000);
+
+    } else {
+        // Signal
+        const sourceLayerIndex = (currentStep - 1) / 2;
+        setActiveLayer(null);
+        // We need current values to know who fires
+        // We can use neuronValuesRef.current, but we just updated it in the previous step (even step).
+        // So it should be up to date.
+        createSignals(sourceLayerIndex, neuronValuesRef.current);
+    }
+
+  }, [currentStep, passCount, layerSizes, neurons, connections, dispatch]); 
+
 
   const createSignals = (
     sourceLayerIndex: number,
-    currentValues: Record<
-      string,
-      { sum: number; output: number; state: 'sum' | 'active' }
-    >
+    currentValues: Record<string, { sum: number; output: number; state: 'sum' | 'active' }>
   ) => {
     const relevantConnections = connections.filter(
       (c) => c.sourceLayer === sourceLayerIndex
@@ -272,7 +277,7 @@ const NetworkVisualization: React.FC<NetworkVisualizationProps> = ({
           weight: conn.weight,
           sourceLayer: conn.sourceLayer,
           sourceIndex: conn.sourceIndex,
-          sourceOutput, // <-- same value for all edges from this neuron
+          sourceOutput,
         });
       }
     });
@@ -283,7 +288,7 @@ const NetworkVisualization: React.FC<NetworkVisualizationProps> = ({
 
   const animateSignals = () => {
     const startTime = performance.now();
-    const duration = 2500; // 2.5s
+    const duration = 2500;
 
     const step = (currentTime: number) => {
       const elapsed = currentTime - startTime;
@@ -322,44 +327,13 @@ const NetworkVisualization: React.FC<NetworkVisualizationProps> = ({
             const my = (conn.y1 + conn.y2) / 2;
             return (
               <g key={conn.key} className="connection-group">
-                {/* Visible line */}
-                <line
-                  x1={conn.x1}
-                  y1={conn.y1}
-                  x2={conn.x2}
-                  y2={conn.y2}
-                  className="connection"
-                />
-                
-                {/* Invisible wide line for easier hovering */}
-                <line
-                  x1={conn.x1}
-                  y1={conn.y1}
-                  x2={conn.x2}
-                  y2={conn.y2}
-                  className="connection-hit-area"
-                />
-
-                {/* Weight Label */}
-                <text
-                  x={mx}
-                  y={my}
-                  className="weight-label"
-                  textAnchor="middle"
-                  alignmentBaseline="middle"
-                >
+                <line x1={conn.x1} y1={conn.y1} x2={conn.x2} y2={conn.y2} className="connection" />
+                <line x1={conn.x1} y1={conn.y1} x2={conn.x2} y2={conn.y2} className="connection-hit-area" />
+                <text x={mx} y={my} className="weight-label" textAnchor="middle" alignmentBaseline="middle">
                   {conn.weight.toFixed(2)}
                 </text>
-
-                {/* Active Flow Line (if active) */}
                 {activeLayer === conn.sourceLayer && conn.weight > 0 && (
-                  <line
-                    x1={conn.x1}
-                    y1={conn.y1}
-                    x2={conn.x2}
-                    y2={conn.y2}
-                    className="idle-flow"
-                  />
+                  <line x1={conn.x1} y1={conn.y1} x2={conn.x2} y2={conn.y2} className="idle-flow" />
                 )}
               </g>
             );
@@ -371,13 +345,9 @@ const NetworkVisualization: React.FC<NetworkVisualizationProps> = ({
           {signals.map((sig) => {
             const currentX = sig.x + (sig.targetX - sig.x) * sig.progress;
             const currentY = sig.y + (sig.targetY - sig.y) * sig.progress;
-
-            // Radius based on source neuron's output:
-            // all signals from that neuron share this value.
-            let v = Math.abs(sig.sourceOutput); // magnitude
-            // normalize: anything >= 1 just treated as "strong"
+            let v = Math.abs(sig.sourceOutput);
             if (v > 1) v = 1;
-            const radius = 2 + v * 4; // 2px .. 6px
+            const radius = 2 + v * 4;
 
             return (
               <circle
@@ -394,8 +364,7 @@ const NetworkVisualization: React.FC<NetworkVisualizationProps> = ({
         {/* Neurons */}
         <g className="neurons">
           {neurons.map((neuron) => {
-            const val =
-              neuronValues[`${neuron.layerIndex}-${neuron.neuronIndex}`];
+            const val = neuronValues[`${neuron.layerIndex}-${neuron.neuronIndex}`];
             const isVisible = val !== undefined;
 
             let neuronClass = `neuron ${
@@ -419,17 +388,13 @@ const NetworkVisualization: React.FC<NetworkVisualizationProps> = ({
             }
 
             return (
-              <g
-                key={`neuron-group-${neuron.layerIndex}-${neuron.neuronIndex}`}
-              >
+              <g key={`neuron-group-${neuron.layerIndex}-${neuron.neuronIndex}`}>
                 <circle
                   cx={neuron.x}
                   cy={neuron.y}
                   r={neuronRadius}
                   className={neuronClass}
                   onClick={() => {
-                    if (!onNeuronSelect) return;
-
                     // Gather data for this neuron
                     const incomingConnections = connections.filter(
                       (c) =>
@@ -444,14 +409,14 @@ const NetworkVisualization: React.FC<NetworkVisualizationProps> = ({
 
                     const weights = incomingConnections.map((c) => c.weight);
 
-                    onNeuronSelect({
+                    dispatch(selectNeuron({
                       layerIndex: neuron.layerIndex,
                       neuronIndex: neuron.neuronIndex,
                       bias: neuron.bias,
                       output: val?.output || 0,
                       inputs,
                       weights,
-                    });
+                    }));
                   }}
                 />
                 <text

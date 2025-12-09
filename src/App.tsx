@@ -1,15 +1,21 @@
-import { useState, useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import './App.scss'
-import NetworkVisualization, { type NeuronData } from './components/NetworkVisualization';
+import NetworkVisualization from './components/NetworkVisualization';
 import NeuronDetail from './components/NeuronDetail';
 import StepIndicator from './components/StepIndicator';
+import { type RootState } from './store/store';
+import { initializeNetwork } from './store/slices/networkSlice';
+import { nextStep, incrementPass, selectNeuron, resetSimulation } from './store/slices/simulationSlice';
 
 function App() {
-  // Example structure: 3 inputs, 5 hidden, 5 hidden, 2 outputs
-  const layerSizes = [3, 5, 5, 2];
-  const [selectedNeuron, setSelectedNeuron] = useState<NeuronData | null>(null);
-  const [currentStep, setCurrentStep] = useState(0);
-  const [passCount, setPassCount] = useState(1);
+  const dispatch = useDispatch();
+  const { layerSizes } = useSelector((state: RootState) => state.network);
+  const { currentStep, passCount, selectedNeuron } = useSelector((state: RootState) => state.simulation);
+
+  useEffect(() => {
+    dispatch(initializeNetwork());
+  }, [dispatch, layerSizes]); // Re-init if layer sizes change (though they are static for now)
 
   // Generate steps based on layer structure
   const steps = useMemo(() => {
@@ -31,10 +37,10 @@ function App() {
         <StepIndicator 
           steps={steps} 
           currentStep={currentStep} 
-          onNextStep={() => setCurrentStep(prev => Math.min(prev + 1, steps.length))} 
+          onNextStep={() => dispatch(nextStep(steps.length))} 
           onReset={() => {
-            setCurrentStep(0);
-            setPassCount(prev => prev + 1);
+            dispatch(resetSimulation());
+            dispatch(incrementPass());
           }}
           passCount={passCount}
           isProcessing={currentStep % 2 !== 0}
@@ -42,11 +48,7 @@ function App() {
         
         <div style={{ flex: 1, position: 'relative' }}>
           <NetworkVisualization 
-            layerSizes={layerSizes} 
-            currentStep={currentStep}
-            onNeuronSelect={(data) => setSelectedNeuron(data)}
-            onAnimationComplete={() => setCurrentStep(prev => Math.min(prev + 1, steps.length))}
-            passCount={passCount}
+            onAnimationComplete={() => dispatch(nextStep(steps.length))}
           />
         </div>
       </div>
@@ -54,7 +56,7 @@ function App() {
       {selectedNeuron && (
         <NeuronDetail 
           data={selectedNeuron}
-          onClose={() => setSelectedNeuron(null)} 
+          onClose={() => dispatch(selectNeuron(null))} 
         />
       )}
     </div>
