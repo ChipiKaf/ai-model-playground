@@ -96,14 +96,16 @@ const NetworkVisualization: React.FC<NetworkVisualizationProps> = ({ layerSizes,
     // Odd steps: Signal Transmission
 
     if (currentStep === 0) {
-       // Reset values on start
-       setNeuronValues({});
-       // Initialize Input Layer
-       const newValues: Record<string, number> = {};
-       for(let i=0; i<layerSizes[0]; i++) {
-         newValues[`0-${i}`] = Math.random();
-       }
-       setNeuronValues(newValues);
+       // Initialize Input Layer for new pass
+       // We do NOT clear other values, simulating continuous processing
+       setNeuronValues(prev => {
+         const newValues: Record<string, number> = { ...prev };
+         // Update inputs
+         for(let i=0; i<layerSizes[0]; i++) {
+           newValues[`0-${i}`] = Math.random();
+         }
+         return newValues;
+       });
        setActiveLayer(0);
        setSignals([]);
     } else if (currentStep % 2 === 0) {

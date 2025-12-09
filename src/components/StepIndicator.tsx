@@ -6,14 +6,15 @@ interface StepIndicatorProps {
   currentStep: number;
   onNextStep: () => void;
   onReset: () => void;
+  passCount?: number;
 }
 
-const StepIndicator: React.FC<StepIndicatorProps> = ({ steps, currentStep, onNextStep, onReset }) => {
+const StepIndicator: React.FC<StepIndicatorProps> = ({ steps, currentStep, onNextStep, onReset, passCount = 1 }) => {
   const isFinished = currentStep >= steps.length;
 
   return (
     <div className="step-indicator">
-      <h2>Process Flow</h2>
+      <h2>Process Flow <span style={{ fontSize: '0.8em', opacity: 0.6, marginLeft: '10px' }}>Pass {passCount}</span></h2>
       
       <div className="step-list">
         {steps.map((step, index) => {
@@ -40,7 +41,7 @@ const StepIndicator: React.FC<StepIndicatorProps> = ({ steps, currentStep, onNex
       <div className="controls">
         {isFinished ? (
           <button onClick={onReset} style={{ background: '#4f46e5' }}>
-            Start Again
+            Start Next Pass
           </button>
         ) : (
           <button onClick={onNextStep}>

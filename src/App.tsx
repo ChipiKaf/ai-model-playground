@@ -9,6 +9,7 @@ function App() {
   const layerSizes = [3, 5, 5, 2];
   const [selectedNeuron, setSelectedNeuron] = useState<{layer: number, neuron: number} | null>(null);
   const [currentStep, setCurrentStep] = useState(0);
+  const [passCount, setPassCount] = useState(1);
 
   // Generate steps based on layer structure
   const steps = useMemo(() => {
@@ -31,7 +32,11 @@ function App() {
           steps={steps} 
           currentStep={currentStep} 
           onNextStep={() => setCurrentStep(prev => Math.min(prev + 1, steps.length))} 
-          onReset={() => setCurrentStep(0)}
+          onReset={() => {
+            setCurrentStep(0);
+            setPassCount(prev => prev + 1);
+          }}
+          passCount={passCount}
         />
         
         <div style={{ flex: 1, position: 'relative' }}>
