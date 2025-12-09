@@ -143,23 +143,21 @@ const NetworkVisualization: React.FC<NetworkVisualizationProps> = ({
   // Handle Step Changes
   useEffect(() => {
     if (currentStep === 0) {
-      if (passCount === 1) {
-        // First pass: Initialize Input Layer immediately
-        setNeuronValues({});
-        const newValues: Record<
-          string,
-          { sum: number; output: number; state: 'active' }
-        > = {};
-        for (let i = 0; i < layerSizes[0]; i++) {
-          const val = Math.random();
-          newValues[`0-${i}`] = {
-            sum: val,
-            output: val,
-            state: 'active',
-          }; // Input layer
-        }
-        setNeuronValues(newValues as any);
+      // Always initialize/randomize Input Layer at step 0
+      setNeuronValues({});
+      const newValues: Record<
+        string,
+        { sum: number; output: number; state: 'active' }
+      > = {};
+      for (let i = 0; i < layerSizes[0]; i++) {
+        const val = Math.random();
+        newValues[`0-${i}`] = {
+          sum: val,
+          output: val,
+          state: 'active',
+        }; // Input layer
       }
+      setNeuronValues(newValues as any);
 
       setActiveLayer(0);
       setSignals([]);
@@ -224,20 +222,6 @@ const NetworkVisualization: React.FC<NetworkVisualizationProps> = ({
       setActiveLayer(null);
 
       let valuesForSignal = neuronValues;
-
-      if (sourceLayerIndex === 0 && passCount > 1) {
-        const newInputs: Record<
-          string,
-          { sum: number; output: number; state: 'active' }
-        > = {};
-        for (let i = 0; i < layerSizes[0]; i++) {
-          const val = Math.random();
-          newInputs[`0-${i}`] = { sum: val, output: val, state: 'active' };
-        }
-
-        setNeuronValues((prev) => ({ ...prev, ...newInputs }));
-        valuesForSignal = { ...neuronValues, ...newInputs };
-      }
 
       createSignals(sourceLayerIndex, valuesForSignal);
     }

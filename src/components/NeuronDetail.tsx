@@ -8,14 +8,18 @@ interface NeuronDetailProps {
 }
 
 const NeuronDetail: React.FC<NeuronDetailProps> = ({ data, onClose }) => {
-  const { layerIndex, neuronIndex, inputs, weights, bias } = data;
+  const { layerIndex, neuronIndex, inputs, weights, bias, output } = data;
 
   // Calculate Weighted Sum (re-calculate for display, though we have output)
   // Note: output might be ReLU(sum), so we want the raw sum for Step 1
-  const weightedSum = inputs.reduce((acc, val, idx) => acc + val * weights[idx], 0) + bias;
+  const isInputLayer = layerIndex === 0;
+  
+  const weightedSum = isInputLayer
+    ? output // For input layer, "sum" is just the value
+    : inputs.reduce((acc, val, idx) => acc + val * weights[idx], 0) + bias;
 
   // Activation Function (ReLU)
-  const activation = Math.max(0, weightedSum);
+  const activation = isInputLayer ? output : Math.max(0, weightedSum);
 
   return (
     <>
@@ -30,29 +34,38 @@ const NeuronDetail: React.FC<NeuronDetailProps> = ({ data, onClose }) => {
           <div className="visualization-section">
             {/* Step 1: Weighted Sum */}
             <div className="step-container">
-              <h3>Step 1: Weighted Sum</h3>
+              <h3>{isInputLayer ? 'Input Value' : 'Step 1: Weighted Sum'}</h3>
               <div className="math-visual">
-                {inputs.length === 0 ? (
+                {isInputLayer ? (
                   <div className="input-group">
-                    <span className="value">Input Node</span>
+                    <span className="value">{output.toFixed(2)}</span>
+                    <span className="weight">(Raw Input)</span>
                   </div>
                 ) : (
-                  inputs.map((input, idx) => (
-                  <div key={idx} className="input-group">
-                    <span className="value">{input.toFixed(1)}</span>
-                    <span className="operator">&times;</span>
-                    <span className="weight">{weights[idx].toFixed(1)}</span>
-                    {idx < inputs.length - 1 && <span className="operator" style={{marginLeft: '0.5rem'}}>+</span>}
-                  </div>
-                ))
+                  <>
+                    {inputs.length === 0 ? (
+                      <div className="input-group">
+                        <span className="value">No Inputs</span>
+                      </div>
+                    ) : (
+                      inputs.map((input, idx) => (
+                        <div key={idx} className="input-group">
+                          <span className="value">{input.toFixed(1)}</span>
+                          <span className="operator">&times;</span>
+                          <span className="weight">{weights[idx].toFixed(1)}</span>
+                          {idx < inputs.length - 1 && <span className="operator" style={{marginLeft: '0.5rem'}}>+</span>}
+                        </div>
+                      ))
+                    )}
+                    <span className="operator">+</span>
+                    <div className="input-group">
+                      <span className="value">{bias.toFixed(1)}</span>
+                      <span className="weight">(Bias)</span>
+                    </div>
+                    <span className="operator">=</span>
+                    <span className="result">{weightedSum.toFixed(2)}</span>
+                  </>
                 )}
-                <span className="operator">+</span>
-                <div className="input-group">
-                  <span className="value">{bias.toFixed(1)}</span>
-                  <span className="weight">(Bias)</span>
-                </div>
-                <span className="operator">=</span>
-                <span className="result">{weightedSum.toFixed(2)}</span>
               </div>
             </div>
 
