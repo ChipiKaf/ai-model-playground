@@ -3,6 +3,7 @@ import './NetworkVisualization.scss';
 
 interface NetworkVisualizationProps {
   layerSizes: number[];
+  onNeuronSelect?: (layerIndex: number, neuronIndex: number) => void;
 }
 
 interface NeuronPosition {
@@ -12,7 +13,7 @@ interface NeuronPosition {
   neuronIndex: number;
 }
 
-const NetworkVisualization: React.FC<NetworkVisualizationProps> = ({ layerSizes }) => {
+const NetworkVisualization: React.FC<NetworkVisualizationProps> = ({ layerSizes, onNeuronSelect }) => {
   // Constants for layout
   const width = 800;
   const height = 600;
@@ -93,6 +94,7 @@ const NetworkVisualization: React.FC<NetworkVisualizationProps> = ({ layerSizes 
               cy={neuron.y}
               r={neuronRadius}
               className="neuron"
+              onClick={() => onNeuronSelect?.(neuron.layerIndex, neuron.neuronIndex)}
             />
           ))}
         </g>
