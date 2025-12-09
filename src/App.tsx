@@ -1,13 +1,13 @@
 import { useState, useMemo } from 'react';
 import './App.scss'
-import NetworkVisualization from './components/NetworkVisualization';
+import NetworkVisualization, { type NeuronData } from './components/NetworkVisualization';
 import NeuronDetail from './components/NeuronDetail';
 import StepIndicator from './components/StepIndicator';
 
 function App() {
   // Example structure: 3 inputs, 5 hidden, 5 hidden, 2 outputs
   const layerSizes = [3, 5, 5, 2];
-  const [selectedNeuron, setSelectedNeuron] = useState<{layer: number, neuron: number} | null>(null);
+  const [selectedNeuron, setSelectedNeuron] = useState<NeuronData | null>(null);
   const [currentStep, setCurrentStep] = useState(0);
   const [passCount, setPassCount] = useState(1);
 
@@ -44,7 +44,7 @@ function App() {
           <NetworkVisualization 
             layerSizes={layerSizes} 
             currentStep={currentStep}
-            onNeuronSelect={(layer, neuron) => setSelectedNeuron({layer, neuron})}
+            onNeuronSelect={(data) => setSelectedNeuron(data)}
             onAnimationComplete={() => setCurrentStep(prev => Math.min(prev + 1, steps.length))}
             passCount={passCount}
           />
@@ -53,8 +53,7 @@ function App() {
 
       {selectedNeuron && (
         <NeuronDetail 
-          layerIndex={selectedNeuron.layer} 
-          neuronIndex={selectedNeuron.neuron} 
+          data={selectedNeuron}
           onClose={() => setSelectedNeuron(null)} 
         />
       )}

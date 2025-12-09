@@ -1,19 +1,17 @@
 import React from 'react';
+import type { NeuronData } from './NetworkVisualization';
 import './NeuronDetail.scss';
 
 interface NeuronDetailProps {
-  layerIndex: number;
-  neuronIndex: number;
+  data: NeuronData;
   onClose: () => void;
 }
 
-const NeuronDetail: React.FC<NeuronDetailProps> = ({ layerIndex, neuronIndex, onClose }) => {
-  // Mock data for demonstration
-  const inputs = [0.5, -0.2, 0.8];
-  const weights = [1.2, 0.5, -0.9];
-  const bias = 0.1;
+const NeuronDetail: React.FC<NeuronDetailProps> = ({ data, onClose }) => {
+  const { layerIndex, neuronIndex, inputs, weights, bias } = data;
 
-  // Calculate Weighted Sum
+  // Calculate Weighted Sum (re-calculate for display, though we have output)
+  // Note: output might be ReLU(sum), so we want the raw sum for Step 1
   const weightedSum = inputs.reduce((acc, val, idx) => acc + val * weights[idx], 0) + bias;
 
   // Activation Function (ReLU)
@@ -34,14 +32,20 @@ const NeuronDetail: React.FC<NeuronDetailProps> = ({ layerIndex, neuronIndex, on
             <div className="step-container">
               <h3>Step 1: Weighted Sum</h3>
               <div className="math-visual">
-                {inputs.map((input, idx) => (
+                {inputs.length === 0 ? (
+                  <div className="input-group">
+                    <span className="value">Input Node</span>
+                  </div>
+                ) : (
+                  inputs.map((input, idx) => (
                   <div key={idx} className="input-group">
                     <span className="value">{input.toFixed(1)}</span>
                     <span className="operator">&times;</span>
                     <span className="weight">{weights[idx].toFixed(1)}</span>
                     {idx < inputs.length - 1 && <span className="operator" style={{marginLeft: '0.5rem'}}>+</span>}
                   </div>
-                ))}
+                ))
+                )}
                 <span className="operator">+</span>
                 <div className="input-group">
                   <span className="value">{bias.toFixed(1)}</span>

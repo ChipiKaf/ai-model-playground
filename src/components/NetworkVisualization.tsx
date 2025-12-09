@@ -4,9 +4,18 @@ import './NetworkVisualization.scss';
 interface NetworkVisualizationProps {
   layerSizes: number[];
   currentStep: number;
-  onNeuronSelect?: (layerIndex: number, neuronIndex: number) => void;
+  onNeuronSelect?: (data: NeuronData) => void;
   onAnimationComplete?: () => void;
   passCount?: number;
+}
+
+export interface NeuronData {
+  layerIndex: number;
+  neuronIndex: number;
+  bias: number;
+  output: number;
+  inputs: number[];
+  weights: number[];
 }
 
 interface NeuronPosition {
@@ -421,9 +430,32 @@ const NetworkVisualization: React.FC<NetworkVisualizationProps> = ({
                   cy={neuron.y}
                   r={neuronRadius}
                   className={neuronClass}
-                  onClick={() =>
-                    onNeuronSelect?.(neuron.layerIndex, neuron.neuronIndex)
-                  }
+                  onClick={() => {
+                    if (!onNeuronSelect) return;
+
+                    // Gather data for this neuron
+                    const incomingConnections = connections.filter(
+                      (c) =>
+                        c.targetIndex === neuron.neuronIndex &&
+                        c.sourceLayer === neuron.layerIndex - 1
+                    );
+
+                    const inputs = incomingConnections.map((c) => {
+                      const sourceKey = `${c.sourceLayer}-${c.sourceIndex}`;
+                      return neuronValues[sourceKey]?.output || 0;
+                    });
+
+                    const weights = incomingConnections.map((c) => c.weight);
+
+                    onNeuronSelect({
+                      layerIndex: neuron.layerIndex,
+                      neuronIndex: neuron.neuronIndex,
+                      bias: neuron.bias,
+                      output: val?.output || 0,
+                      inputs,
+                      weights,
+                    });
+                  }}
                 />
                 <text
                   x={neuron.x}
