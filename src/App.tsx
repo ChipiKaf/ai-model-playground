@@ -37,6 +37,7 @@ function App() {
             setPassCount(prev => prev + 1);
           }}
           passCount={passCount}
+          isProcessing={currentStep % 2 !== 0}
         />
         
         <div style={{ flex: 1, position: 'relative' }}>

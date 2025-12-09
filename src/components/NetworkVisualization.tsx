@@ -23,6 +23,7 @@ interface Signal {
   targetX: number;
   targetY: number;
   progress: number; // 0 to 1
+  weight?: number;
 }
 
 const NetworkVisualization: React.FC<NetworkVisualizationProps> = ({ layerSizes, currentStep, onNeuronSelect, onAnimationComplete, passCount = 1 }) => {
@@ -66,7 +67,7 @@ const NetworkVisualization: React.FC<NetworkVisualizationProps> = ({ layerSizes,
 
   // Generate connections
   const connections = useMemo(() => {
-    const lines: { x1: number; y1: number; x2: number; y2: number; key: string, sourceLayer: number, sourceIndex: number, targetIndex: number }[] = [];
+    const lines: { x1: number; y1: number; x2: number; y2: number; key: string, sourceLayer: number, sourceIndex: number, targetIndex: number, weight: number }[] = [];
 
     for (let l = 0; l < layerSizes.length - 1; l++) {
       const currentLayerNeurons = neurons.filter(n => n.layerIndex === l);
@@ -74,6 +75,11 @@ const NetworkVisualization: React.FC<NetworkVisualizationProps> = ({ layerSizes,
 
       currentLayerNeurons.forEach(source => {
         nextLayerNeurons.forEach(target => {
+          // Generate a deterministic random weight based on indices for consistency across renders
+          // Simple pseudo-random:
+          const seed = l * 1000 + source.neuronIndex * 100 + target.neuronIndex;
+          const weight = 0.2 + (Math.sin(seed) * 0.5 + 0.5) * 0.8; // Range approx 0.2 to 1.0
+
           lines.push({
             x1: source.x,
             y1: source.y,
@@ -82,7 +88,8 @@ const NetworkVisualization: React.FC<NetworkVisualizationProps> = ({ layerSizes,
             key: `l${l}-n${source.neuronIndex}-to-l${l + 1}-n${target.neuronIndex}`,
             sourceLayer: l,
             sourceIndex: source.neuronIndex,
-            targetIndex: target.neuronIndex
+            targetIndex: target.neuronIndex,
+            weight: weight
           });
         });
       });
@@ -152,7 +159,8 @@ const NetworkVisualization: React.FC<NetworkVisualizationProps> = ({ layerSizes,
       y: conn.y1,
       targetX: conn.x2,
       targetY: conn.y2,
-      progress: 0
+      progress: 0,
+      weight: conn.weight
     }));
 
     setSignals(newSignals);
@@ -161,7 +169,7 @@ const NetworkVisualization: React.FC<NetworkVisualizationProps> = ({ layerSizes,
 
   const animateSignals = () => {
     const startTime = performance.now();
-    const duration = 1500; // Slower animation as requested (1.5s)
+    const duration = 2500; // Slower animation (2.5s)
 
     const step = (currentTime: number) => {
       const elapsed = currentTime - startTime;
@@ -224,12 +232,15 @@ const NetworkVisualization: React.FC<NetworkVisualizationProps> = ({ layerSizes,
              const currentX = sig.x + (sig.targetX - sig.x) * sig.progress;
              const currentY = sig.y + (sig.targetY - sig.y) * sig.progress;
              
+             // Scale radius based on weight: 1.5px to 4.5px
+             const radius = 1.5 + (sig.weight || 0.5) * 3;
+
              return (
               <circle
                 key={sig.id}
                 cx={currentX}
                 cy={currentY}
-                r={3} // Smaller radius
+                r={radius} 
                 className="signal"
               />
              );

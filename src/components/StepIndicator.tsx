@@ -7,9 +7,10 @@ interface StepIndicatorProps {
   onNextStep: () => void;
   onReset: () => void;
   passCount?: number;
+  isProcessing?: boolean;
 }
 
-const StepIndicator: React.FC<StepIndicatorProps> = ({ steps, currentStep, onNextStep, onReset, passCount = 1 }) => {
+const StepIndicator: React.FC<StepIndicatorProps> = ({ steps, currentStep, onNextStep, onReset, passCount = 1, isProcessing = false }) => {
   const isFinished = currentStep >= steps.length;
 
   return (
@@ -44,8 +45,12 @@ const StepIndicator: React.FC<StepIndicatorProps> = ({ steps, currentStep, onNex
             Start Next Pass
           </button>
         ) : (
-          <button onClick={onNextStep}>
-            Next Step
+          <button 
+            onClick={onNextStep} 
+            disabled={isProcessing}
+            style={isProcessing ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
+          >
+            {isProcessing ? 'Processing...' : 'Next Step'}
           </button>
         )}
       </div>
