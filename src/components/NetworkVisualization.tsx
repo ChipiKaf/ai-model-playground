@@ -35,10 +35,12 @@ const NetworkVisualization: React.FC<NetworkVisualizationProps> = ({ layerSizes,
   // Animation State
   const [activeLayer, setActiveLayer] = useState<number | null>(null);
   const [signals, setSignals] = useState<Signal[]>([]);
+  const [neuronValues, setNeuronValues] = useState<Record<string, number>>({});
   const animationRef = useRef<number>(undefined);
 
   // Calculate positions of all neurons
   const neurons: NeuronPosition[] = useMemo(() => {
+    // ... (existing code)
     const positions: NeuronPosition[] = [];
     
     const layerSpacing = (width - 2 * paddingX) / (layerSizes.length - 1);
@@ -93,21 +95,39 @@ const NetworkVisualization: React.FC<NetworkVisualizationProps> = ({ layerSizes,
     // Even steps: Layer Activation
     // Odd steps: Signal Transmission
 
-    if (currentStep % 2 === 0) {
+    if (currentStep === 0) {
+       // Reset values on start
+       setNeuronValues({});
+       // Initialize Input Layer
+       const newValues: Record<string, number> = {};
+       for(let i=0; i<layerSizes[0]; i++) {
+         newValues[`0-${i}`] = Math.random();
+       }
+       setNeuronValues(newValues);
+       setActiveLayer(0);
+       setSignals([]);
+    } else if (currentStep % 2 === 0) {
       // Layer Activation
       const layerIndex = currentStep / 2;
       setActiveLayer(layerIndex);
       setSignals([]); // Clear any signals
+      
+      // Generate values for this layer
+      setNeuronValues(prev => {
+        const next = { ...prev };
+        for(let i=0; i<layerSizes[layerIndex]; i++) {
+          next[`${layerIndex}-${i}`] = Math.random();
+        }
+        return next;
+      });
+
     } else {
       // Signal Transmission
       const sourceLayerIndex = (currentStep - 1) / 2;
-      setActiveLayer(null); // Or keep previous layer active? Let's turn off to focus on signals? 
-      // User said "light that's moving along the line".
-      // Let's keep the source layer active? No, usually signals leave.
-      
+      setActiveLayer(null); 
       createSignals(sourceLayerIndex);
     }
-  }, [currentStep, connections]); // Re-run when step changes
+  }, [currentStep, connections, layerSizes]); 
 
   const createSignals = (sourceLayerIndex: number) => {
     const relevantConnections = connections.filter(c => c.sourceLayer === sourceLayerIndex);
@@ -203,16 +223,29 @@ const NetworkVisualization: React.FC<NetworkVisualizationProps> = ({ layerSizes,
 
         {/* Neurons */}
         <g className="neurons">
-          {neurons.map((neuron) => (
-            <circle
-              key={`neuron-${neuron.layerIndex}-${neuron.neuronIndex}`}
-              cx={neuron.x}
-              cy={neuron.y}
-              r={neuronRadius}
-              className={`neuron ${activeLayer === neuron.layerIndex ? 'active' : ''}`}
-              onClick={() => onNeuronSelect?.(neuron.layerIndex, neuron.neuronIndex)}
-            />
-          ))}
+          {neurons.map((neuron) => {
+            const val = neuronValues[`${neuron.layerIndex}-${neuron.neuronIndex}`];
+            const isVisible = val !== undefined;
+
+            return (
+              <g key={`neuron-group-${neuron.layerIndex}-${neuron.neuronIndex}`}>
+                <circle
+                  cx={neuron.x}
+                  cy={neuron.y}
+                  r={neuronRadius}
+                  className={`neuron ${activeLayer === neuron.layerIndex ? 'active' : ''}`}
+                  onClick={() => onNeuronSelect?.(neuron.layerIndex, neuron.neuronIndex)}
+                />
+                <text
+                  x={neuron.x}
+                  y={neuron.y}
+                  className={`neuron-value ${isVisible ? 'visible' : ''}`}
+                >
+                  {isVisible ? val.toFixed(1) : ''}
+                </text>
+              </g>
+            );
+          })}
         </g>
         
         {/* Layer Labels */}
