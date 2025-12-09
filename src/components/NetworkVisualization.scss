@@ -86,6 +86,21 @@
   
   // Removed @keyframes pulse since we aren't using it for scale anymore
 
+  .idle-flow {
+    stroke: #6b7280; // Gray-500, slightly lighter than base connection
+    stroke-width: 1; // Same thickness as connection
+    stroke-dasharray: 10 20; // Short dashes
+    animation: dash 3s linear infinite; // Slow movement
+    opacity: 0.6;
+    pointer-events: none;
+  }
+
+  @keyframes dash {
+    to {
+      stroke-dashoffset: -30;
+    }
+  }
+
   .layer-label {
     fill: #9ca3af;
     font-size: 12px;

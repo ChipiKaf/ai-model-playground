@@ -162,14 +162,24 @@ const NetworkVisualization: React.FC<NetworkVisualizationProps> = ({ layerSizes,
         {/* Connections */}
         <g className="connections">
           {connections.map(conn => (
-            <line
-              key={conn.key}
-              x1={conn.x1}
-              y1={conn.y1}
-              x2={conn.x2}
-              y2={conn.y2}
-              className="connection"
-            />
+            <React.Fragment key={conn.key}>
+              <line
+                x1={conn.x1}
+                y1={conn.y1}
+                x2={conn.x2}
+                y2={conn.y2}
+                className="connection"
+              />
+              {activeLayer === conn.sourceLayer && (
+                <line
+                  x1={conn.x1}
+                  y1={conn.y1}
+                  x2={conn.x2}
+                  y2={conn.y2}
+                  className="idle-flow"
+                />
+              )}
+            </React.Fragment>
           ))}
         </g>
 
