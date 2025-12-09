@@ -1,73 +1,64 @@
-# React + TypeScript + Vite
+# AI Model Playground
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A universal, extensible playground for visualizing and interacting with various AI models.
 
-Currently, two official plugins are available:
+This project is designed to be a comprehensive platform for exploring the inner workings of different Artificial Intelligence architectures. While it currently features visualizations for Neural Networks (ANN) and Computational Theory of Mind (CTM) concepts, its core architecture is built to be agnostic and extensible, allowing for the integration and visualization of *any* AI model.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Vision
 
-## React Compiler
+The goal is to demystify AI by providing a tangible, interactive interface where users can observe models in action. Whether it's a simple perceptron, a complex transformer, a decision tree, or a theoretical cognitive model, this playground aims to provide the tools to visualize it.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Features
 
-## Expanding the ESLint configuration
+- **Extensible Plugin Architecture**: Easily add new model types through a modular plugin system.
+- **Interactive Visualizations**: Real-time rendering of model states, signal propagation, and decision processes.
+- **Universal Viz Kit**: A shared library of visualization components (`viz-kit`) to ensure consistent and high-quality rendering across different models.
+- **Current Plugins**:
+    - **Artificial Neural Networks (ANN)**: Visualize layers, neurons, weights, biases, and activation functions.
+    - **Computational Theory of Mind (CTM)**: Explore cognitive architectures and mental state transitions.
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## Tech Stack
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+- **Framework**: [React](https://react.dev/) + [TypeScript](https://www.typescriptlang.org/)
+- **Build Tool**: [Vite](https://vitejs.dev/)
+- **State Management**: [Redux Toolkit](https://redux-toolkit.js.org/)
+- **Styling**: SCSS / CSS Modules
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+## Getting Started
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+Follow these steps to get the project running locally:
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+1.  **Clone the repository**
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+    ```bash
+    git clone <repository-url>
+    cd ai-model-playground
+    ```
+    *(Note: If you cloned the repo with the old name, the directory might still be `nn-ctm-playground`)*
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+2.  **Install dependencies**
+
+    ```bash
+    npm install
+    ```
+
+3.  **Run the development server**
+
+    ```bash
+    npm run dev
+    ```
+
+4.  **Open in Browser**
+
+    Navigate to `http://localhost:5173` (or the URL shown in your terminal) to view the application.
+
+## Contributing
+
+We welcome contributions! If you want to add a visualization for a new model type (e.g., Genetic Algorithms, SVMs, LLMs), please check out the plugin development guide (coming soon).
+
+## Scripts
+
+- `npm run dev`: Starts the development server.
+- `npm run build`: Builds the application for production.
+- `npm run lint`: Runs ESLint to check for code quality issues.
+- `npm run preview`: Previews the production build locally.
