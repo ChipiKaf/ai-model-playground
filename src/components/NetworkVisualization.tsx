@@ -37,7 +37,7 @@ const NetworkVisualization: React.FC<NetworkVisualizationProps> = ({ layerSizes,
   // Animation State
   const [activeLayer, setActiveLayer] = useState<number | null>(null);
   const [signals, setSignals] = useState<Signal[]>([]);
-  const [neuronValues, setNeuronValues] = useState<Record<string, number>>({});
+  const [neuronValues, setNeuronValues] = useState<Record<string, { sum: number, output: number, state: 'sum' | 'active' }>>({});
   const animationRef = useRef<number>(undefined);
 
   // Calculate positions of all neurons
@@ -76,9 +76,10 @@ const NetworkVisualization: React.FC<NetworkVisualizationProps> = ({ layerSizes,
       currentLayerNeurons.forEach(source => {
         nextLayerNeurons.forEach(target => {
           // Generate a deterministic random weight based on indices for consistency across renders
-          // Simple pseudo-random:
           const seed = l * 1000 + source.neuronIndex * 100 + target.neuronIndex;
-          const weight = 0.2 + (Math.sin(seed) * 0.5 + 0.5) * 0.8; // Range approx 0.2 to 1.0
+          // Weight range: -1.0 to 1.0
+          const pseudoRandom = (Math.sin(seed) * 10000) % 1; 
+          const signedWeight = (pseudoRandom * 2) - 1; // -1 to 1
 
           lines.push({
             x1: source.x,
@@ -89,7 +90,7 @@ const NetworkVisualization: React.FC<NetworkVisualizationProps> = ({ layerSizes,
             sourceLayer: l,
             sourceIndex: source.neuronIndex,
             targetIndex: target.neuronIndex,
-            weight: weight
+            weight: signedWeight
           });
         });
       });
@@ -104,12 +105,13 @@ const NetworkVisualization: React.FC<NetworkVisualizationProps> = ({ layerSizes,
     if (currentStep === 0) {
        if (passCount === 1) {
          // First pass: Initialize Input Layer immediately
-         setNeuronValues({}); // Clear all previous values
-         const newValues: Record<string, number> = {};
+         setNeuronValues({}); 
+         const newValues: Record<string, { sum: number, output: number, state: 'active' }> = {};
          for(let i=0; i<layerSizes[0]; i++) {
-           newValues[`0-${i}`] = Math.random();
+           const val = Math.random();
+           newValues[`0-${i}`] = { sum: val, output: val, state: 'active' }; // Input layer has no activation function really
          }
-         setNeuronValues(newValues);
+         setNeuronValues(newValues as any);
        }
        // If passCount > 1, we do NOTHING here. We keep the old values.
        
@@ -119,16 +121,58 @@ const NetworkVisualization: React.FC<NetworkVisualizationProps> = ({ layerSizes,
       // Layer Activation
       const layerIndex = currentStep / 2;
       setActiveLayer(layerIndex);
-      setSignals([]); // Clear any signals
+      setSignals([]); 
       
-      // Generate values for this layer
+      // 1. Calculate Weighted Sums for this layer
+      const currentLayerNeurons = neurons.filter(n => n.layerIndex === layerIndex);
+      const prevLayerIndex = layerIndex - 1;
+      
       setNeuronValues(prev => {
         const next = { ...prev };
-        for(let i=0; i<layerSizes[layerIndex]; i++) {
-          next[`${layerIndex}-${i}`] = Math.random();
-        }
+        
+        currentLayerNeurons.forEach(neuron => {
+          // Find all connections pointing TO this neuron
+          const incomingConnections = connections.filter(c => 
+            c.targetIndex === neuron.neuronIndex && 
+            (c.sourceLayer === prevLayerIndex) // Should be implicit by structure but good to be safe
+          );
+
+          let weightedSum = 0;
+          incomingConnections.forEach(conn => {
+            const sourceVal = prev[`${prevLayerIndex}-${conn.sourceIndex}`]?.output || 0;
+            weightedSum += sourceVal * conn.weight;
+          });
+
+          // Add bias (random small value for simulation)
+          weightedSum += (Math.random() * 0.2) - 0.1;
+
+          // Initial State: Show Sum (Red/Blue)
+          next[`${layerIndex}-${neuron.neuronIndex}`] = { 
+            sum: weightedSum, 
+            output: weightedSum, // Placeholder
+            state: 'sum' 
+          };
+        });
+        
         return next;
       });
+
+      // 2. Trigger Activation Animation after delay
+      setTimeout(() => {
+        setNeuronValues(prev => {
+          const next = { ...prev };
+          currentLayerNeurons.forEach(neuron => {
+            const key = `${layerIndex}-${neuron.neuronIndex}`;
+            const current = next[key];
+            if (current) {
+              // ReLU Activation
+              const output = Math.max(0, current.sum);
+              next[key] = { ...current, output, state: 'active' };
+            }
+          });
+          return next;
+        });
+      }, 1000); // 1 second delay to see the "Sum" state
 
     } else {
       // Signal Transmission
@@ -141,7 +185,8 @@ const NetworkVisualization: React.FC<NetworkVisualizationProps> = ({ layerSizes,
          setNeuronValues(prev => {
            const next = { ...prev };
            for(let i=0; i<layerSizes[0]; i++) {
-             next[`0-${i}`] = Math.random();
+             const val = Math.random();
+             next[`0-${i}`] = { sum: val, output: val, state: 'active' };
            }
            return next;
          });
@@ -149,7 +194,7 @@ const NetworkVisualization: React.FC<NetworkVisualizationProps> = ({ layerSizes,
 
       createSignals(sourceLayerIndex);
     }
-  }, [currentStep, connections, layerSizes, passCount]); 
+  }, [currentStep, connections, layerSizes, passCount, neurons]); 
 
   const createSignals = (sourceLayerIndex: number) => {
     const relevantConnections = connections.filter(c => c.sourceLayer === sourceLayerIndex);
@@ -252,6 +297,25 @@ const NetworkVisualization: React.FC<NetworkVisualizationProps> = ({ layerSizes,
           {neurons.map((neuron) => {
             const val = neuronValues[`${neuron.layerIndex}-${neuron.neuronIndex}`];
             const isVisible = val !== undefined;
+            
+            let neuronClass = `neuron ${activeLayer === neuron.layerIndex ? 'active' : ''}`;
+            let displayValue = '';
+
+            if (isVisible) {
+               if (val.state === 'sum') {
+                 neuronClass += val.sum < 0 ? ' negative' : ' positive';
+                 displayValue = val.sum.toFixed(1);
+               } else {
+                 // Active state (post-activation)
+                 if (val.output === 0) {
+                   neuronClass += ' inactive';
+                   displayValue = '0.0';
+                 } else {
+                   neuronClass += ' positive';
+                   displayValue = val.output.toFixed(1);
+                 }
+               }
+            }
 
             return (
               <g key={`neuron-group-${neuron.layerIndex}-${neuron.neuronIndex}`}>
@@ -259,7 +323,7 @@ const NetworkVisualization: React.FC<NetworkVisualizationProps> = ({ layerSizes,
                   cx={neuron.x}
                   cy={neuron.y}
                   r={neuronRadius}
-                  className={`neuron ${activeLayer === neuron.layerIndex ? 'active' : ''}`}
+                  className={neuronClass}
                   onClick={() => onNeuronSelect?.(neuron.layerIndex, neuron.neuronIndex)}
                 />
                 <text
@@ -267,7 +331,7 @@ const NetworkVisualization: React.FC<NetworkVisualizationProps> = ({ layerSizes,
                   y={neuron.y}
                   className={`neuron-value ${isVisible ? 'visible' : ''}`}
                 >
-                  {isVisible ? val.toFixed(1) : ''}
+                  {displayValue}
                 </text>
               </g>
             );

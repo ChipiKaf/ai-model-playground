@@ -23,24 +23,40 @@
   }
 
   .neuron {
-    fill: #1f2937;
-    stroke: #6366f1;
+    fill: #e0e7ff; // Indigo-100 (Default/Input)
+    stroke: #4f46e5; // Indigo-600
     stroke-width: 2;
-    transition: all 0.3s ease;
     cursor: pointer;
-
-    &:hover {
-      fill: #312e81;
-      stroke: #818cf8;
-      filter: drop-shadow(0 0 8px rgba(99, 102, 241, 0.6));
-    }
+    transition: all 0.3s ease;
+    filter: drop-shadow(0 0 2px rgba(79, 70, 229, 0.3));
 
     &.active {
-      fill: #4f46e5; // Indigo-600
-      stroke: #a5b4fc; // Indigo-300
-      filter: drop-shadow(0 0 12px rgba(99, 102, 241, 0.9));
-      // Removed scale animation to prevent jumping
-      transition: fill 0.3s ease, stroke 0.3s ease, filter 0.3s ease;
+      fill: #818cf8; // Indigo-400
+      stroke: #312e81; // Indigo-900
+      filter: drop-shadow(0 0 8px rgba(79, 70, 229, 0.6));
+    }
+
+    &.positive {
+      fill: #818cf8; // Indigo-400
+      stroke: #312e81; // Indigo-900
+      filter: drop-shadow(0 0 8px rgba(79, 70, 229, 0.6));
+    }
+
+    &.negative {
+      fill: #f87171; // Red-400
+      stroke: #991b1b; // Red-800
+      filter: drop-shadow(0 0 8px rgba(239, 68, 68, 0.6));
+    }
+
+    &.inactive {
+      fill: #d1d5db; // Gray-300
+      stroke: #9ca3af; // Gray-400
+      filter: none;
+      opacity: 0.8;
+    }
+
+    &:hover {
+      filter: drop-shadow(0 0 6px rgba(79, 70, 229, 0.5));
     }
   }
 
