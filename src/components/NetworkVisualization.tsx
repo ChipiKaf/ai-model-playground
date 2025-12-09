@@ -6,6 +6,7 @@ interface NetworkVisualizationProps {
   currentStep: number;
   onNeuronSelect?: (layerIndex: number, neuronIndex: number) => void;
   onAnimationComplete?: () => void;
+  passCount?: number;
 }
 
 interface NeuronPosition {
@@ -24,7 +25,7 @@ interface Signal {
   progress: number; // 0 to 1
 }
 
-const NetworkVisualization: React.FC<NetworkVisualizationProps> = ({ layerSizes, currentStep, onNeuronSelect, onAnimationComplete }) => {
+const NetworkVisualization: React.FC<NetworkVisualizationProps> = ({ layerSizes, currentStep, onNeuronSelect, onAnimationComplete, passCount = 1 }) => {
   // Constants for layout
   const width = 800;
   const height = 600;
@@ -92,20 +93,19 @@ const NetworkVisualization: React.FC<NetworkVisualizationProps> = ({ layerSizes,
   // Handle Step Changes
   useEffect(() => {
     // Determine what should be happening based on currentStep
-    // Even steps: Layer Activation
-    // Odd steps: Signal Transmission
 
     if (currentStep === 0) {
-       // Initialize Input Layer for new pass
-       // We do NOT clear other values, simulating continuous processing
-       setNeuronValues(prev => {
-         const newValues: Record<string, number> = { ...prev };
-         // Update inputs
+       if (passCount === 1) {
+         // First pass: Initialize Input Layer immediately
+         setNeuronValues({}); // Clear all previous values
+         const newValues: Record<string, number> = {};
          for(let i=0; i<layerSizes[0]; i++) {
            newValues[`0-${i}`] = Math.random();
          }
-         return newValues;
-       });
+         setNeuronValues(newValues);
+       }
+       // If passCount > 1, we do NOTHING here. We keep the old values.
+       
        setActiveLayer(0);
        setSignals([]);
     } else if (currentStep % 2 === 0) {
@@ -127,9 +127,22 @@ const NetworkVisualization: React.FC<NetworkVisualizationProps> = ({ layerSizes,
       // Signal Transmission
       const sourceLayerIndex = (currentStep - 1) / 2;
       setActiveLayer(null); 
+      
+      // If this is the first transmission (Input -> Hidden 1) AND we are in a later pass,
+      // NOW is the time to update the input layer values.
+      if (sourceLayerIndex === 0 && passCount > 1) {
+         setNeuronValues(prev => {
+           const next = { ...prev };
+           for(let i=0; i<layerSizes[0]; i++) {
+             next[`0-${i}`] = Math.random();
+           }
+           return next;
+         });
+      }
+
       createSignals(sourceLayerIndex);
     }
-  }, [currentStep, connections, layerSizes]); 
+  }, [currentStep, connections, layerSizes, passCount]); 
 
   const createSignals = (sourceLayerIndex: number) => {
     const relevantConnections = connections.filter(c => c.sourceLayer === sourceLayerIndex);
