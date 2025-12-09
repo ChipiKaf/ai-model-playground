@@ -1,0 +1,45 @@
+.network-visualization {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: #111827; // Very dark gray/blue
+  // border-radius: 12px;
+  box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.5);
+  // padding: 2rem;
+
+  svg {
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+  }
+
+  .connection {
+    stroke: #4b5563; // Gray-600
+    stroke-width: 1;
+    opacity: 0.4;
+    transition: stroke 0.3s ease, opacity 0.3s ease;
+  }
+
+  .neuron {
+    fill: #1f2937;
+    stroke: #6366f1;
+    stroke-width: 2;
+    transition: all 0.3s ease;
+    cursor: pointer;
+
+    &:hover {
+      fill: #312e81;
+      stroke: #818cf8;
+      filter: drop-shadow(0 0 8px rgba(99, 102, 241, 0.6));
+    }
+  }
+
+  .layer-label {
+    fill: #9ca3af;
+    font-size: 12px;
+    text-anchor: middle;
+    pointer-events: none;
+  }
+}
