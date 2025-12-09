@@ -48,7 +48,6 @@ const NetworkVisualization: React.FC<NetworkVisualizationProps> = ({
 
   // Animation State
   const [activeLayer, setActiveLayer] = useState<number | null>(null);
-  const [hoveredConnectionKey, setHoveredConnectionKey] = useState<string | null>(null);
   const [signals, setSignals] = useState<Signal[]>([]);
   const [neuronValues, setNeuronValues] = useState<
     Record<string, { sum: number; output: number; state: 'sum' | 'active' }>
@@ -310,69 +309,53 @@ const NetworkVisualization: React.FC<NetworkVisualizationProps> = ({
   return (
     <div className="network-visualization">
       <svg viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="xMidYMid meet">
-        {/* Connections */}
+        {/* Connections & Weights */}
         <g className="connections">
-          {connections.map((conn) => (
-            <React.Fragment key={conn.key}>
-              <line
-                x1={conn.x1}
-                y1={conn.y1}
-                x2={conn.x2}
-                y2={conn.y2}
-                className="connection"
-                style={{
-                  strokeWidth: hoveredConnectionKey === conn.key ? 2 : 1,
-                }}
-              />
-              {/* Invisible wide line for easier hovering */}
-              <line
-                x1={conn.x1}
-                y1={conn.y1}
-                x2={conn.x2}
-                y2={conn.y2}
-                stroke="transparent"
-                strokeWidth={15}
-                onMouseEnter={() => setHoveredConnectionKey(conn.key)}
-                onMouseLeave={() => setHoveredConnectionKey(null)}
-                style={{ cursor: 'pointer' }}
-              />
-              {activeLayer === conn.sourceLayer && conn.weight > 0 && (
+          {connections.map((conn) => {
+            const mx = (conn.x1 + conn.x2) / 2;
+            const my = (conn.y1 + conn.y2) / 2;
+            return (
+              <g key={conn.key} className="connection-group">
+                {/* Visible line */}
                 <line
                   x1={conn.x1}
                   y1={conn.y1}
                   x2={conn.x2}
                   y2={conn.y2}
-                  className="idle-flow"
+                  className="connection"
                 />
-              )}
-            </React.Fragment>
-          ))}
-        </g>
+                
+                {/* Invisible wide line for easier hovering */}
+                <line
+                  x1={conn.x1}
+                  y1={conn.y1}
+                  x2={conn.x2}
+                  y2={conn.y2}
+                  className="connection-hit-area"
+                />
 
-        {/* Connection Weights */}
-        <g className="connection-weights">
-          {connections.map((conn) => {
-            if (hoveredConnectionKey !== conn.key) return null;
-            const mx = (conn.x1 + conn.x2) / 2;
-            const my = (conn.y1 + conn.y2) / 2;
-            return (
-              <text
-                key={`weight-${conn.key}`}
-                x={mx}
-                y={my}
-                className="weight-label"
-                textAnchor="middle"
-                alignmentBaseline="middle"
-                style={{
-                  fontSize: '12px',
-                  fill: '#333',
-                  fontWeight: 'bold',
-                  pointerEvents: 'none', // let mouse events pass through to line
-                  textShadow: '0 0 4px white', // outline for readability
-                }}
-              >
-                {conn.weight.toFixed(2)}
-              </text>
+                {/* Weight Label */}
+                <text
+                  x={mx}
+                  y={my}
+                  className="weight-label"
+                  textAnchor="middle"
+                  alignmentBaseline="middle"
+                >
+                  {conn.weight.toFixed(2)}
+                </text>
+
+                {/* Active Flow Line (if active) */}
+                {activeLayer === conn.sourceLayer && conn.weight > 0 && (
+                  <line
+                    x1={conn.x1}
+                    y1={conn.y1}
+                    x2={conn.x2}
+                    y2={conn.y2}
+                    className="idle-flow"
+                  />
+                )}
+              </g>
             );
           })}
         </g>

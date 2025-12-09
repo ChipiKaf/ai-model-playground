@@ -4,140 +4,121 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  background: #111827; // Very dark gray/blue
-  // border-radius: 12px;
-  box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.5);
-  // padding: 2rem;
+  background: #f8f9fa;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
 
   svg {
     width: 100%;
     height: 100%;
-    overflow: visible;
+    max-width: 800px;
+    max-height: 600px;
   }
 
-  .connection {
-    stroke: #4b5563; // Gray-600
-    stroke-width: 1;
-    opacity: 0.4;
-    transition: stroke 0.3s ease, opacity 0.3s ease;
-  }
-
-  .neuron {
-    fill: #e0e7ff; // Indigo-100 (Default/Input)
-    stroke: #4f46e5; // Indigo-600
-    stroke-width: 2;
+  .connection-group {
     cursor: pointer;
-    transition: all 0.3s ease;
-    filter: drop-shadow(0 0 2px rgba(79, 70, 229, 0.3));
 
-    &.active {
-      fill: #818cf8; // Indigo-400
-      stroke: #312e81; // Indigo-900
-      filter: drop-shadow(0 0 8px rgba(79, 70, 229, 0.6));
+    .connection {
+      stroke: #cbd5e1;
+      stroke-width: 1;
+      transition: stroke-width 0.1s ease, stroke 0.1s ease;
     }
 
-    &.positive {
-      fill: #818cf8; // Indigo-400
-      stroke: #312e81; // Indigo-900
-      filter: drop-shadow(0 0 8px rgba(79, 70, 229, 0.6));
+    .connection-hit-area {
+      stroke: transparent;
+      stroke-width: 15;
     }
 
-    &.negative {
-      fill: #f87171; // Red-400
-      stroke: #991b1b; // Red-800
-      filter: drop-shadow(0 0 8px rgba(239, 68, 68, 0.6));
-    }
-
-    &.inactive {
-      fill: #d1d5db; // Gray-300
-      stroke: #9ca3af; // Gray-400
-      filter: none;
-      opacity: 0.8;
+    .weight-label {
+      font-size: 12px;
+      fill: #333;
+      font-weight: bold;
+      pointer-events: none;
+      text-shadow: 0 0 4px white;
+      opacity: 0;
+      transition: opacity 0.1s ease;
     }
 
     &:hover {
-      filter: drop-shadow(0 0 6px rgba(79, 70, 229, 0.5));
+      .connection {
+        stroke-width: 2;
+        stroke: #94a3b8;
+      }
+
+      .weight-label {
+        opacity: 1;
+      }
     }
+  }
+
+  .idle-flow {
+    stroke: #60a5fa;
+    stroke-width: 2;
+    stroke-dasharray: 4;
+    animation: flow 1s linear infinite;
+    opacity: 0.5;
   }
 
   .signal {
-    fill: #fbbf24; // Amber-400
-    filter: drop-shadow(0 0 6px rgba(251, 191, 36, 1)); // Stronger glow
-    pointer-events: none;
-    // Smaller radius will be handled in TSX, but visual style here
-    opacity: 0.9;
+    fill: #3b82f6;
+    filter: drop-shadow(0 0 2px rgba(59, 130, 246, 0.5));
   }
 
-  .controls {
-    position: absolute;
-    bottom: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    display: flex;
-    gap: 1rem;
-    z-index: 10;
+  .neuron {
+    fill: #fff;
+    stroke: #94a3b8;
+    stroke-width: 2;
+    cursor: pointer;
+    transition: all 0.3s ease;
 
-    button {
-      background: #4f46e5;
-      color: white;
-      border: none;
-      padding: 0.75rem 1.5rem;
-      border-radius: 8px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: background 0.2s;
-      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
-
-      &:hover {
-        background: #4338ca;
-      }
-
-      &:disabled {
-        background: #374151;
-        cursor: not-allowed;
-        opacity: 0.7;
-      }
+    &.active {
+      stroke: #3b82f6;
+      stroke-width: 3;
+      filter: drop-shadow(0 0 4px rgba(59, 130, 246, 0.3));
     }
-  }
-  
-  // Removed @keyframes pulse since we aren't using it for scale anymore
 
-  .idle-flow {
-    stroke: #6b7280; // slightly lighter than base connection
-    stroke-width: 1; // Same thickness as connection
-    stroke-dasharray: 10 20; // Short dashes
-    animation: dash 3s linear infinite; // Slow movement
-    opacity: 0.6;
-    pointer-events: none;
-  }
-
-  @keyframes dash {
-    to {
-      stroke-dashoffset: -30;
+    &.positive {
+      fill: #eff6ff;
     }
-  }
 
-  .layer-label {
-    fill: #9ca3af;
-    font-size: 12px;
-    text-anchor: middle;
-    pointer-events: none;
-    user-select: none;
+    &.negative {
+      fill: #fef2f2;
+      stroke: #ef4444;
+    }
+
+    &.inactive {
+      fill: #f1f5f9;
+      stroke: #cbd5e1;
+    }
   }
 
   .neuron-value {
-    fill: #e0e7ff; // Indigo-100
     font-size: 10px;
-    font-weight: 600;
     text-anchor: middle;
-    dominant-baseline: central;
+    dominant-baseline: middle;
+    fill: #475569;
     pointer-events: none;
-    user-select: none;
     opacity: 0;
-    transition: opacity 0.3s ease;
+    transition: opacity 0.2s ease;
 
     &.visible {
       opacity: 1;
     }
+  }
+
+  .layer-label {
+    font-size: 14px;
+    fill: #64748b;
+    text-anchor: middle;
+    font-weight: 500;
+  }
+}
+
+@keyframes flow {
+  from {
+    stroke-dashoffset: 8;
+  }
+  to {
+    stroke-dashoffset: 0;
   }
 }
