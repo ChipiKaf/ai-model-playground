@@ -14,6 +14,7 @@ interface NeuronPosition {
   y: number;
   layerIndex: number;
   neuronIndex: number;
+  bias: number; // Fixed bias for this neuron
 }
 
 interface Signal {
@@ -47,6 +48,7 @@ const NetworkVisualization: React.FC<NetworkVisualizationProps> = ({
 
   // Animation State
   const [activeLayer, setActiveLayer] = useState<number | null>(null);
+  const [hoveredConnectionKey, setHoveredConnectionKey] = useState<string | null>(null);
   const [signals, setSignals] = useState<Signal[]>([]);
   const [neuronValues, setNeuronValues] = useState<
     Record<string, { sum: number; output: number; state: 'sum' | 'active' }>
@@ -70,6 +72,7 @@ const NetworkVisualization: React.FC<NetworkVisualizationProps> = ({
           y: paddingY + (i + 1) * neuronSpacing,
           layerIndex,
           neuronIndex: i,
+          bias: Math.random() * 0.4 - 0.2, // Random bias between -0.2 and 0.2
         });
       }
     });
@@ -102,7 +105,15 @@ const NetworkVisualization: React.FC<NetworkVisualizationProps> = ({
           // Deterministic pseudo-random in [0, 1)
           const raw = Math.sin(seed) * 43758.5453123;
           const pseudoRandom = raw - Math.floor(raw); // 0..1
-          const signedWeight = pseudoRandom * 2 - 1; // -1..1
+
+          // Base weight in [-1, 1]
+          const base = pseudoRandom * 2 - 1;
+
+          // 🔹 Slight bias towards positive:
+          // shift distribution right by ~0.25 then clamp back to [-1, 1]
+          const bias = 0.25; // tweak this (0.1 .. 0.3) to taste
+          let signedWeight = base + bias;
+          signedWeight = Math.max(-1, Math.min(1, signedWeight));
 
           lines.push({
             x1: source.x,
@@ -172,8 +183,8 @@ const NetworkVisualization: React.FC<NetworkVisualizationProps> = ({
             weightedSum += sourceVal * conn.weight;
           });
 
-          // Bias
-          weightedSum += Math.random() * 0.2 - 0.1;
+          // Bias (fixed per neuron)
+          weightedSum += neuron.bias;
 
           next[`${layerIndex}-${neuron.neuronIndex}`] = {
             sum: weightedSum,
@@ -309,8 +320,23 @@ const NetworkVisualization: React.FC<NetworkVisualizationProps> = ({
                 x2={conn.x2}
                 y2={conn.y2}
                 className="connection"
+                style={{
+                  strokeWidth: hoveredConnectionKey === conn.key ? 2 : 1,
+                }}
               />
-              {activeLayer === conn.sourceLayer && (
+              {/* Invisible wide line for easier hovering */}
+              <line
+                x1={conn.x1}
+                y1={conn.y1}
+                x2={conn.x2}
+                y2={conn.y2}
+                stroke="transparent"
+                strokeWidth={15}
+                onMouseEnter={() => setHoveredConnectionKey(conn.key)}
+                onMouseLeave={() => setHoveredConnectionKey(null)}
+                style={{ cursor: 'pointer' }}
+              />
+              {activeLayer === conn.sourceLayer && conn.weight > 0 && (
                 <line
                   x1={conn.x1}
                   y1={conn.y1}
@@ -321,6 +347,34 @@ const NetworkVisualization: React.FC<NetworkVisualizationProps> = ({
               )}
             </React.Fragment>
           ))}
+        </g>
+
+        {/* Connection Weights */}
+        <g className="connection-weights">
+          {connections.map((conn) => {
+            if (hoveredConnectionKey !== conn.key) return null;
+            const mx = (conn.x1 + conn.x2) / 2;
+            const my = (conn.y1 + conn.y2) / 2;
+            return (
+              <text
+                key={`weight-${conn.key}`}
+                x={mx}
+                y={my}
+                className="weight-label"
+                textAnchor="middle"
+                alignmentBaseline="middle"
+                style={{
+                  fontSize: '12px',
+                  fill: '#333',
+                  fontWeight: 'bold',
+                  pointerEvents: 'none', // let mouse events pass through to line
+                  textShadow: '0 0 4px white', // outline for readability
+                }}
+              >
+                {conn.weight.toFixed(2)}
+              </text>
+            );
+          })}
         </g>
 
         {/* Signals */}
