@@ -38,6 +38,7 @@ function App() {
             layerSizes={layerSizes} 
             currentStep={currentStep}
             onNeuronSelect={(layer, neuron) => setSelectedNeuron({layer, neuron})}
+            onAnimationComplete={() => setCurrentStep(prev => Math.min(prev + 1, steps.length))}
           />
         </div>
       </div>

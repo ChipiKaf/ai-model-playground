@@ -5,6 +5,7 @@ interface NetworkVisualizationProps {
   layerSizes: number[];
   currentStep: number;
   onNeuronSelect?: (layerIndex: number, neuronIndex: number) => void;
+  onAnimationComplete?: () => void;
 }
 
 interface NeuronPosition {
@@ -23,7 +24,7 @@ interface Signal {
   progress: number; // 0 to 1
 }
 
-const NetworkVisualization: React.FC<NetworkVisualizationProps> = ({ layerSizes, currentStep, onNeuronSelect }) => {
+const NetworkVisualization: React.FC<NetworkVisualizationProps> = ({ layerSizes, currentStep, onNeuronSelect, onAnimationComplete }) => {
   // Constants for layout
   const width = 800;
   const height = 600;
@@ -138,6 +139,9 @@ const NetworkVisualization: React.FC<NetworkVisualizationProps> = ({ layerSizes,
         animationRef.current = requestAnimationFrame(step);
       } else {
         // Animation finished, signals stay at end until next step clears them
+        if (onAnimationComplete) {
+          onAnimationComplete();
+        }
       }
     };
 
