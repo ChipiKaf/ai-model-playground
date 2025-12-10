@@ -1,5 +1,5 @@
 import React from 'react';
-import type { NeuronData } from '../plugins/ann/AnnVisualization';
+import type { NeuronData } from '../plugins/ann/main';
 import './NeuronDetail.scss';
 
 interface NeuronDetailProps {

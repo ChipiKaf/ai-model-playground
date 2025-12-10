@@ -1,6 +1,6 @@
 import type { ModelPlugin } from '../../types/ModelPlugin';
 import annReducer, { initializeNetwork, type NetworkState, initialState } from './annSlice';
-import AnnVisualization from './AnnVisualization';
+import AnnVisualization from './main';
 import { type RootState } from '../../store/store';
 
 const AnnPlugin: ModelPlugin<NetworkState> = {
