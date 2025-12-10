@@ -1,15 +1,16 @@
 import type { ModelPlugin } from '../../types/ModelPlugin';
-import annReducer, { initializeNetwork } from './annSlice';
+import annReducer, { initializeNetwork, type NetworkState, initialState } from './annSlice';
 import AnnVisualization from './AnnVisualization';
+import { type RootState } from '../../store/store';
 
-const AnnPlugin: ModelPlugin = {
+const AnnPlugin: ModelPlugin<NetworkState> = {
   id: 'ann',
   name: 'Artificial Neural Network',
   description: 'A classic feedforward neural network visualization.',
-  initialState: undefined, // Reducer handles initial state
+  initialState,
   reducer: annReducer,
   Component: AnnVisualization,
-  getSteps: (state: any) => {
+  getSteps: (state: NetworkState) => {
     // state is the NetworkState
     const { layerSizes } = state;
     const s = ['Input Layer Initialization'];
@@ -22,7 +23,7 @@ const AnnPlugin: ModelPlugin = {
   init: (dispatch) => {
     dispatch(initializeNetwork());
   },
-  selector: (state) => state.network,
+  selector: (state: RootState) => state.network,
 };
 
 export default AnnPlugin;

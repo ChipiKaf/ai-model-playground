@@ -32,14 +32,14 @@ export interface NeuronValue {
 export const neuronsAdapter = createEntityAdapter<NeuronPosition>();
 export const connectionsAdapter = createEntityAdapter<Connection>();
 
-interface NetworkState {
+export interface NetworkState {
   layerSizes: number[];
   neurons: EntityState<NeuronPosition, string>;
   connections: EntityState<Connection, string>;
   neuronValues: Record<string, NeuronValue>;
 }
 
-const initialState: NetworkState = {
+export const initialState: NetworkState = {
   layerSizes: [3, 5, 5, 2], // Default
   neurons: neuronsAdapter.getInitialState(),
   connections: connectionsAdapter.getInitialState(),

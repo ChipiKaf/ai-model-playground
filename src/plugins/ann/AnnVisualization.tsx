@@ -50,7 +50,7 @@ const NetworkVisualization: React.FC<NetworkVisualizationProps> = ({
                 <text x={mx} y={my} className="weight-label" textAnchor="middle" alignmentBaseline="middle">
                   {conn.weight.toFixed(2)}
                 </text>
-                {activeLayer === conn.sourceLayer && conn.weight > 0 && (
+                {activeLayer === conn.sourceLayer && neuronValues[`${conn.sourceLayer}-${conn.sourceIndex}`]?.sum > 0 && conn.weight > 0 && (
                   <line x1={conn.x1} y1={conn.y1} x2={conn.x2} y2={conn.y2} className="idle-flow" />
                 )}
               </g>
