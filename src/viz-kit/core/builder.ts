@@ -8,13 +8,25 @@ import type {
 
 interface VizBuilder {
   view(w: number, h: number): VizBuilder;
+  grid(cols: number, rows: number, padding?: { x: number; y: number }): VizBuilder;
   node(id: string): NodeBuilder;
   edge(from: string, to: string, id?: string): EdgeBuilder;
   build(): VizScene;
+
+  // Internal helper for NodeBuilder to access grid config
+  _getGridConfig(): GridConfig | null;
+  _getViewBox(): { w: number; h: number };
+}
+
+interface GridConfig {
+    cols: number;
+    rows: number;
+    padding: { x: number; y: number };
 }
 
 interface NodeBuilder {
   at(x: number, y: number): NodeBuilder;
+  cell(col: number, row: number, align?: 'center' | 'start' | 'end'): NodeBuilder;
   circle(r: number): NodeBuilder;
   rect(w: number, h: number, rx?: number): NodeBuilder;
   diamond(w: number, h: number): NodeBuilder;
@@ -52,16 +64,21 @@ class VizBuilderImpl implements VizBuilder {
   private _edges = new Map<string, Partial<VizEdge>>();
   private _nodeOrder: string[] = [];
   private _edgeOrder: string[] = [];
+  private _gridConfig: GridConfig | null = null;
 
   view(w: number, h: number): VizBuilder {
     this._viewBox = { w, h };
     return this;
   }
 
+  grid(cols: number, rows: number, padding: { x: number; y: number } = { x: 20, y: 20 }): VizBuilder {
+      this._gridConfig = { cols, rows, padding };
+      return this;
+  }
+
   node(id: string): NodeBuilder {
     if (!this._nodes.has(id)) {
       // Set default position and shape
-      // The caller can override these defaults in the builder
       this._nodes.set(id, { id, pos: { x: 0, y: 0 }, shape: { kind: "circle", r: 10 } });
       this._nodeOrder.push(id);
     }
@@ -96,6 +113,14 @@ class VizBuilderImpl implements VizBuilder {
       edges,
     };
   }
+
+  _getGridConfig(): GridConfig | null {
+      return this._gridConfig;
+  }
+
+  _getViewBox() {
+      return this._viewBox;
+  }
 }
 
 class NodeBuilderImpl implements NodeBuilder {
@@ -110,6 +135,38 @@ class NodeBuilderImpl implements NodeBuilder {
   at(x: number, y: number): NodeBuilder {
     this.nodeDef.pos = { x, y };
     return this;
+  }
+
+  cell(col: number, row: number, align: 'center' | 'start' | 'end' = 'center'): NodeBuilder {
+      const grid = this.parent._getGridConfig();
+      if (!grid) {
+          console.warn("VizBuilder: .cell() called but no grid configured. Use .grid() first.");
+          return this;
+      }
+      
+      const view = this.parent._getViewBox();
+      const availableW = view.w - (grid.padding.x * 2);
+      const availableH = view.h - (grid.padding.y * 2);
+      
+      const cellW = availableW / grid.cols;
+      const cellH = availableH / grid.rows;
+
+      let x = grid.padding.x + (col * cellW);
+      let y = grid.padding.y + (row * cellH);
+
+      // Alignment adjustments
+      if (align === 'center') {
+          x += cellW / 2;
+          y += cellH / 2;
+      } else if (align === 'end') {
+          x += cellW;
+          y += cellH;
+      }
+      // 'start' is default (top-left of cell), so no addition needed for that, 
+      // but typically 'cell' implies centering in that slot.
+      
+      this.nodeDef.pos = { x, y };
+      return this;
   }
 
   circle(r: number): NodeBuilder {
