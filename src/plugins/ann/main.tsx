@@ -4,6 +4,8 @@ import { useDispatch } from 'react-redux';
 import './main.scss';
 import { selectNeuron } from '../../store/slices/simulationSlice';
 import { useAnnAnimation } from './useAnnAnimation';
+import { viz, VizCanvas } from '../../viz-kit';
+import { useMemo } from 'react';
 
 interface NetworkVisualizationProps {
   onAnimationComplete?: () => void;
@@ -36,121 +38,87 @@ const NetworkVisualization: React.FC<NetworkVisualizationProps> = ({
   const height = 600;
   const neuronRadius = 15;
 
+  const scene = useMemo(() => {
+    const b = viz().view(width, height);
+
+    // Nodes
+    neurons.forEach((neuron) => {
+      const val = neuronValues[`${neuron.layerIndex}-${neuron.neuronIndex}`];
+      const isVisible = val !== undefined;
+
+      let neuronClass = `neuron ${
+        activeLayer === neuron.layerIndex ? 'active' : ''
+      }`;
+      let displayValue = '';
+
+      if (isVisible) {
+        if (val.state === 'sum') {
+          neuronClass += val.sum < 0 ? ' negative' : ' positive';
+          displayValue = val.sum.toFixed(2);
+        } else {
+          if (val.output === 0) {
+            neuronClass += ' inactive';
+            displayValue = '0.00';
+          } else {
+            neuronClass += ' positive';
+            displayValue = val.output.toFixed(2);
+          }
+        }
+      }
+
+      b.node(`${neuron.layerIndex}-${neuron.neuronIndex}`)
+       .at(neuron.x, neuron.y)
+       .circle(neuronRadius)
+       .class(neuronClass)
+       .label(isVisible ? displayValue : '', { className: `neuron-value ${isVisible ? 'visible' : ''}` })
+       .onClick(() => {
+          // Gather data for this neuron
+          const incomingConnections = connections.filter(
+            (c) =>
+              c.targetIndex === neuron.neuronIndex &&
+              c.sourceLayer === neuron.layerIndex - 1
+          );
+
+          const inputs = incomingConnections.map((c) => {
+            const sourceKey = `${c.sourceLayer}-${c.sourceIndex}`;
+            return neuronValues[sourceKey]?.output || 0;
+          });
+
+          const weights = incomingConnections.map((c) => c.weight);
+
+          dispatch(selectNeuron({
+            layerIndex: neuron.layerIndex,
+            neuronIndex: neuron.neuronIndex,
+            bias: neuron.bias,
+            output: val?.output || 0,
+            inputs,
+            weights,
+          }));
+       });
+    });
+
+    // Connections
+    connections.forEach((conn) => {
+        let edgeClass = 'connection';
+        // Check "idle flow" condition: active layer matches source, source output > 0, weight > 0
+        // We add a class if this condition is met.
+        if (activeLayer === conn.sourceLayer && neuronValues[`${conn.sourceLayer}-${conn.sourceIndex}`]?.sum > 0 && conn.weight > 0) {
+            edgeClass += ' idle-flow';
+        }
+
+        b.edge(`${conn.sourceLayer}-${conn.sourceIndex}`, `${conn.sourceLayer + 1}-${conn.targetIndex}`, conn.id)
+         .label(conn.weight.toFixed(2), { className: 'weight-label' })
+         .class(edgeClass)
+         .hitArea(10); // Standard hit area width
+    });
+
+    return b.build();
+  }, [neurons, connections, neuronValues, activeLayer, dispatch, width, height]);
+
   return (
     <div className="network-visualization">
-      <svg viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="xMidYMid meet">
-        {/* Connections & Weights */}
-        <g className="connections">
-          {connections.map((conn) => {
-            const mx = (conn.x1 + conn.x2) / 2;
-            const my = (conn.y1 + conn.y2) / 2;
-            return (
-              <g key={conn.id} className="connection-group">
-                <line x1={conn.x1} y1={conn.y1} x2={conn.x2} y2={conn.y2} className="connection" />
-                <line x1={conn.x1} y1={conn.y1} x2={conn.x2} y2={conn.y2} className="connection-hit-area" />
-                <text x={mx} y={my} className="weight-label" textAnchor="middle" alignmentBaseline="middle">
-                  {conn.weight.toFixed(2)}
-                </text>
-                {activeLayer === conn.sourceLayer && neuronValues[`${conn.sourceLayer}-${conn.sourceIndex}`]?.sum > 0 && conn.weight > 0 && (
-                  <line x1={conn.x1} y1={conn.y1} x2={conn.x2} y2={conn.y2} className="idle-flow" />
-                )}
-              </g>
-            );
-          })}
-        </g>
-
-        {/* Signals */}
-        <g className="signals">
-          {signals.map((sig) => {
-            const currentX = sig.x + (sig.targetX - sig.x) * sig.progress;
-            const currentY = sig.y + (sig.targetY - sig.y) * sig.progress;
-            let v = Math.abs(sig.sourceOutput);
-            if (v > 1) v = 1;
-            const radius = 2 + v * 4;
-
-            return (
-              <circle
-                key={sig.id}
-                cx={currentX}
-                cy={currentY}
-                r={radius}
-                className="signal"
-              />
-            );
-          })}
-        </g>
-
-        {/* Neurons */}
-        <g className="neurons">
-          {neurons.map((neuron) => {
-            const val = neuronValues[`${neuron.layerIndex}-${neuron.neuronIndex}`];
-            const isVisible = val !== undefined;
-
-            let neuronClass = `neuron ${
-              activeLayer === neuron.layerIndex ? 'active' : ''
-            }`;
-            let displayValue = '';
-
-            if (isVisible) {
-              if (val.state === 'sum') {
-                neuronClass += val.sum < 0 ? ' negative' : ' positive';
-                displayValue = val.sum.toFixed(2);
-              } else {
-                if (val.output === 0) {
-                  neuronClass += ' inactive';
-                  displayValue = '0.00';
-                } else {
-                  neuronClass += ' positive';
-                  displayValue = val.output.toFixed(2);
-                }
-              }
-            }
-
-            return (
-              <g key={`neuron-group-${neuron.layerIndex}-${neuron.neuronIndex}`} className="neuron-group">
-                <circle
-                  cx={neuron.x}
-                  cy={neuron.y}
-                  r={neuronRadius}
-                  className={neuronClass}
-                  onClick={() => {
-                    // Gather data for this neuron
-                    const incomingConnections = connections.filter(
-                      (c) =>
-                        c.targetIndex === neuron.neuronIndex &&
-                        c.sourceLayer === neuron.layerIndex - 1
-                    );
-
-                    const inputs = incomingConnections.map((c) => {
-                      const sourceKey = `${c.sourceLayer}-${c.sourceIndex}`;
-                      return neuronValues[sourceKey]?.output || 0;
-                    });
-
-                    const weights = incomingConnections.map((c) => c.weight);
-
-                    dispatch(selectNeuron({
-                      layerIndex: neuron.layerIndex,
-                      neuronIndex: neuron.neuronIndex,
-                      bias: neuron.bias,
-                      output: val?.output || 0,
-                      inputs,
-                      weights,
-                    }));
-                  }}
-                />
-                <text
-                  x={neuron.x}
-                  y={neuron.y}
-                  className={`neuron-value ${isVisible ? 'visible' : ''}`}
-                >
-                  {displayValue}
-                </text>
-              </g>
-            );
-          })}
-        </g>
-
-        {/* Layer Labels */}
+      <VizCanvas scene={scene}>
+        {/* Layer Labels - kept as custom overlay for now */}
         <g className="labels">
           {layerSizes.map((_: number, idx: number) => {
             const layerNeuron = neurons.find((n) => n.layerIndex === idx);
@@ -172,7 +140,28 @@ const NetworkVisualization: React.FC<NetworkVisualizationProps> = ({
             );
           })}
         </g>
-      </svg>
+
+         {/* Signals - kept as custom overlay */}
+        <g className="signals">
+          {signals.map((sig) => {
+            const currentX = sig.x + (sig.targetX - sig.x) * sig.progress;
+            const currentY = sig.y + (sig.targetY - sig.y) * sig.progress;
+            let v = Math.abs(sig.sourceOutput);
+            if (v > 1) v = 1;
+            const radius = 2 + v * 4;
+
+            return (
+              <circle
+                key={sig.id}
+                cx={currentX}
+                cy={currentY}
+                r={radius}
+                className="signal"
+              />
+            );
+          })}
+        </g>
+      </VizCanvas>
     </div>
   );
 };

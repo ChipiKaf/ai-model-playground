@@ -15,48 +15,55 @@
     max-height: 600px;
   }
 
-  .connection-group {
+  .viz-edge-group {
     cursor: pointer;
 
-    .connection {
+    .viz-edge {
       stroke: #cbd5e1;
       stroke-width: 1;
       transition: stroke-width 0.1s ease, stroke 0.1s ease;
     }
 
-    .connection-hit-area {
+    .viz-edge-hit {
       stroke: transparent;
       stroke-width: 15;
     }
 
     .weight-label {
+      // Note: Labels are now separate in DOM (viz-edge-labels layer), 
+      // but VizKit puts the custom className on them.
+      // So .weight-label can be styled.
       font-size: 12px;
       fill: #333;
       font-weight: bold;
       pointer-events: none;
       text-shadow: 0 0 4px white;
-      opacity: 0;
+      opacity: 0; 
       transition: opacity 0.1s ease;
+      stroke: none; // Ensure text is crisp
     }
 
     &:hover {
-      .connection {
+      .viz-edge {
         stroke-width: 2;
         stroke: #94a3b8;
       }
-
+      
       .weight-label {
         opacity: 1;
       }
     }
   }
 
-  .idle-flow {
-    stroke: #60a5fa;
-    stroke-width: 2;
-    stroke-dasharray: 4;
-    animation: flow 1s linear infinite;
-    opacity: 0.5;
+  // Idle flow class is applied to the GROUP now via .class() in DSL
+  .viz-edge-group.idle-flow {
+     .viz-edge {
+         stroke: #60a5fa;
+         stroke-width: 2;
+         stroke-dasharray: 4;
+         animation: flow 1s linear infinite;
+         opacity: 0.5;
+     }
   }
 
   .signal {
@@ -64,12 +71,22 @@
     filter: drop-shadow(0 0 2px rgba(59, 130, 246, 0.5));
   }
 
-  .neuron {
+  // .neuron is applied to the VizNode Group
+  .viz-node-group.neuron {
+    // These applied to group, but circle is inside.
+    // Fill/Stroke inherit to circle usually.
     fill: #fff;
     stroke: #94a3b8;
     stroke-width: 2;
     cursor: pointer;
     transition: all 0.3s ease;
+    
+    // Explicitly target shape for clarity and safety
+    .viz-node-shape {
+         fill: inherit; // or #fff
+         stroke: inherit; // or #94a3b8
+         transition: inherit;
+    }
 
     &.active {
       stroke: #3b82f6;
@@ -90,33 +107,29 @@
       fill: #f1f5f9;
       stroke: #cbd5e1;
     }
-  }
-  
-  .neuron-group {
+
     &:hover {
-      .neuron {
-        filter: drop-shadow(0 0 8px rgba(59, 130, 246, 0.6));
-        stroke: #2563eb;
-        stroke-width: 3;
-      }
+         stroke: #2563eb;
+         stroke-width: 3;
+         filter: drop-shadow(0 0 8px rgba(59, 130, 246, 0.6));
 
-      .neuron.negative {
-        filter: drop-shadow(0 0 8px rgba(239, 68, 68, 0.6));
-        stroke: #dc2626;
-      }
-
-      .neuron-value {
-        opacity: 1;
-        font-weight: bold;
-      }
+        &.negative {
+            stroke: #dc2626;
+            filter: drop-shadow(0 0 8px rgba(239, 68, 68, 0.6));
+        }
+        
+        // Ensure child label is visible on hover (if opacity logic used there)
+        // But here we rely on .neuron-value.visible class mostly
     }
   }
 
+  // Styles for the separate label text
   .neuron-value {
     font-size: 10px;
     text-anchor: middle;
     dominant-baseline: middle;
     fill: #475569;
+    stroke: none; // CRITICAL: Do not inherit stroke from parent group
     pointer-events: none;
     opacity: 0;
     transition: opacity 0.2s ease;
