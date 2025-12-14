@@ -60,10 +60,12 @@ class VizBuilderImpl implements VizBuilder {
 
   node(id: string): NodeBuilder {
     if (!this._nodes.has(id)) {
+      // Set default position and shape
+      // The caller can override these defaults in the builder
       this._nodes.set(id, { id, pos: { x: 0, y: 0 }, shape: { kind: "circle", r: 10 } });
       this._nodeOrder.push(id);
     }
-    return new NodeBuilderImpl(this, this._nodes.get(id)!);
+    return new NodeBuilderImpl(this, this._nodes.get(id)!); // The ! asserts that the node exists, because we just added it
   }
 
   edge(from: string, to: string, id?: string): EdgeBuilder {

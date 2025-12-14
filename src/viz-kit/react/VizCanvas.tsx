@@ -1,6 +1,8 @@
 import React, { useMemo } from "react";
 import type { VizScene, VizNode } from "../core/types";
 
+import "./VizCanvas.scss";
+
 export interface VizCanvasProps {
   scene: VizScene;
   className?: string; // Container class
@@ -18,11 +20,10 @@ export function VizCanvas({ scene, className, children }: VizCanvasProps) {
   }, [nodes]);
 
   return (
-    <div className={className} style={{ width: '100%', height: '100%' }}>
+    <div className={`viz-canvas ${className || ""}`}>
       <svg
         viewBox={`0 0 ${viewBox.w} ${viewBox.h}`}
         preserveAspectRatio="xMidYMid meet"
-        style={{ width: "100%", height: "100%", overflow: "visible" }}
       >
         <defs>
           <marker
