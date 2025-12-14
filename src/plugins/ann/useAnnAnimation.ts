@@ -20,6 +20,8 @@ export interface Signal {
   sourceLayer: number;
   sourceIndex: number;
   sourceOutput: number;
+  targetLayer: number;
+  targetIndex: number;
 }
 
 export const useAnnAnimation = (onAnimationComplete?: () => void) => {
@@ -169,6 +171,8 @@ export const useAnnAnimation = (onAnimationComplete?: () => void) => {
           sourceLayer: conn.sourceLayer,
           sourceIndex: conn.sourceIndex,
           sourceOutput,
+          targetLayer: conn.sourceLayer + 1,
+          targetIndex: conn.targetIndex,
         });
       }
     });

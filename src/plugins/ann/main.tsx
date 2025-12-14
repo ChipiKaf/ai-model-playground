@@ -39,7 +39,10 @@ const NetworkVisualization: React.FC<NetworkVisualizationProps> = ({
   const neuronRadius = 15;
 
   const scene = useMemo(() => {
-    const b = viz().view(width, height);
+    // Grid Configuration
+    const cols = layerSizes.length;
+    const rows = Math.max(...layerSizes);
+    const b = viz().view(width, height).grid(cols, rows, { x: 50, y: 50 });
 
     // Nodes
     neurons.forEach((neuron) => {
@@ -66,8 +69,15 @@ const NetworkVisualization: React.FC<NetworkVisualizationProps> = ({
         }
       }
 
+      // Calculate centered row index
+      const layerSize = layerSizes[neuron.layerIndex] || 0;
+      const rowOffset = (rows - layerSize) / 2;
+      // Fractional positioning allowed in viz-kit
+      const row = neuron.neuronIndex + rowOffset;
+      
       b.node(`${neuron.layerIndex}-${neuron.neuronIndex}`)
-       .at(neuron.x, neuron.y)
+       .cell(neuron.layerIndex, row) // Use calculated grid coordinates
+       //.at(neuron.x, neuron.y) // old implementation
        .circle(neuronRadius)
        .class(neuronClass)
        .label(isVisible ? displayValue : '', { className: `neuron-value ${isVisible ? 'visible' : ''}` })
@@ -113,22 +123,31 @@ const NetworkVisualization: React.FC<NetworkVisualizationProps> = ({
     });
 
     return b.build();
-  }, [neurons, connections, neuronValues, activeLayer, dispatch, width, height]);
+  }, [neurons, connections, neuronValues, activeLayer, dispatch, width, height, layerSizes]);
+
+  // Create lookup for node positions from the generated scene
+  // This ensures signals align with Grid layout
+  const nodePosMap = useMemo(() => {
+      const map = new Map<string, {x: number, y: number}>();
+      scene.nodes.forEach(n => map.set(n.id, n.pos));
+      return map;
+  }, [scene]);
 
   return (
     <div className="network-visualization">
       <VizCanvas scene={scene}>
-        {/* Layer Labels - kept as custom overlay for now */}
+        {/* Layer Labels */}
         <g className="labels">
           {layerSizes.map((_: number, idx: number) => {
-            const layerNeuron = neurons.find((n) => n.layerIndex === idx);
-            if (!layerNeuron) return null;
+            // Find a node in this layer to get X position
+            const layerNode = scene.nodes.find(n => n.id.startsWith(`${idx}-`));
+            if (!layerNode) return null;
 
             return (
               <text
                 key={`label-${idx}`}
-                x={layerNeuron.x}
-                y={height - 10}
+                x={layerNode.pos.x}
+                y={height - 20} // Slightly higher padding
                 className="layer-label"
               >
                 {idx === 0
@@ -141,11 +160,17 @@ const NetworkVisualization: React.FC<NetworkVisualizationProps> = ({
           })}
         </g>
 
-         {/* Signals - kept as custom overlay */}
+         {/* Signals */}
         <g className="signals">
           {signals.map((sig) => {
-            const currentX = sig.x + (sig.targetX - sig.x) * sig.progress;
-            const currentY = sig.y + (sig.targetY - sig.y) * sig.progress;
+            const startPos = nodePosMap.get(`${sig.sourceLayer}-${sig.sourceIndex}`);
+            const endPos = nodePosMap.get(`${sig.targetLayer}-${sig.targetIndex}`);
+            
+            if (!startPos || !endPos) return null;
+
+            const currentX = startPos.x + (endPos.x - startPos.x) * sig.progress;
+            const currentY = startPos.y + (endPos.y - startPos.y) * sig.progress;
+
             let v = Math.abs(sig.sourceOutput);
             if (v > 1) v = 1;
             const radius = 2 + v * 4;
