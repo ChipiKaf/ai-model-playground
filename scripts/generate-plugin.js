@@ -8,31 +8,30 @@ const __dirname = path.dirname(__filename);
 const pluginName = process.argv[2];
 
 if (!pluginName) {
-    console.error('Please provide a plugin name (kebab-case), e.g., npm run generate-plugin decision-tree');
-    process.exit(1);
+  console.error('Please provide a plugin name (kebab-case), e.g., npm run generate-plugin decision-tree');
+  process.exit(1);
 }
 
 // Helpers
 const toPascalCase = (str) =>
-    str.replace(/(^\w|-\w)/g, (clear) => clear.replace(/-/, '').toUpperCase());
+  str.replace(/(^\w|-\w)/g, (clear) => clear.replace(/-/, '').toUpperCase());
 
 const toCamelCase = (str) =>
-    str.replace(/-\w/g, (clear) => clear[1].toUpperCase());
+  str.replace(/-\w/g, (clear) => clear[1].toUpperCase());
 
 const pascalName = toPascalCase(pluginName);
 const camelName = toCamelCase(pluginName);
 const targetDir = path.join(__dirname, '../src/plugins', pluginName);
 
 if (fs.existsSync(targetDir)) {
-    console.error(`Plugin "${pluginName}" already exists at ${targetDir}`);
-    process.exit(1);
+  console.error(`Plugin "${pluginName}" already exists at ${targetDir}`);
+  process.exit(1);
 }
 
 fs.mkdirSync(targetDir, { recursive: true });
 
 // 1. Slice
 const sliceContent = `import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
-import type { RootState } from '../../store/store';
 
 export interface ${pascalName}State {
   // Define your state here
@@ -63,15 +62,24 @@ fs.writeFileSync(path.join(targetDir, `${camelName}Slice.ts`), sliceContent);
 const hookContent = `import { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { type RootState } from '../../store/store';
-import { setValue } from './${camelName}Slice';
+import { type ${pascalName}State, initialState } from './${camelName}Slice';
+
+// Define the state shape this plugin expects
+interface StateWith${pascalName} {
+  ${camelName}: ${pascalName}State;
+}
 
 export const use${pascalName}Animation = (onAnimationComplete?: () => void) => {
   const dispatch = useDispatch();
-  const { value } = useSelector((state: RootState) => state.simulation); // Note: You might need to adjust where state is selected from
+  // Select from the local slice, falling back to initial state if not yet registered
+  const { value } = useSelector((state: RootState & StateWith${pascalName}) => state.${camelName} || initialState);
 
   useEffect(() => {
     // Animation logic here
-  }, []);
+    if (onAnimationComplete) {
+        // Call when done
+    }
+  }, [onAnimationComplete]);
 
   return {
     value,
@@ -142,7 +150,7 @@ const ${pascalName}Plugin: ModelPlugin<${pascalName}State, Action, LocalRootStat
   initialState,
   reducer: ${camelName}Reducer,
   Component: ${pascalName}Visualization,
-  getSteps: (state: ${pascalName}State) => {
+  getSteps: (_state: ${pascalName}State) => {
     return ['Step 1', 'Step 2'];
   },
   init: (dispatch) => {

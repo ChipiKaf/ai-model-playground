@@ -1,6 +1,7 @@
+
 import React from 'react';
 import { useDispatch } from 'react-redux';
-import './AnnVisualization.scss';
+import './main.scss';
 import { selectNeuron } from '../../store/slices/simulationSlice';
 import { useAnnAnimation } from './useAnnAnimation';
 
