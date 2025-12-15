@@ -44,3 +44,23 @@
   font-weight: 600;
   opacity: 1;
 }
+
+.viz-signal {
+    fill: #3B82F6; // Blue-500
+    cursor: pointer;
+    // Ensure the group captures events
+    pointer-events: all; 
+    
+    // Animate the transform (scale) on the group
+    transition: transform 0.2s ease-out, fill 0.2s ease-out;
+
+    // Visual shape inherits properties
+    .viz-signal-shape {
+        fill: inherit;
+    }
+
+    &:hover {
+        fill: #60A5FA; // Blue-400 (Lighter)
+        transform: scale(1.5);
+    }
+}

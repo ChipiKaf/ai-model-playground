@@ -50,16 +50,17 @@ export const signalOverlay: OverlayRenderer<{
         if (v > 1) v = 1;
         const r = 2 + v * 4;
 
-        // Create a simple circle overlay
-        // Note: Using 'circle' primitive directly. 
-        // We could expand this to support more complex shapes or styles via params.
+        // Use a wrapping Group for positioning (no transition)
+        // Inner Group handles styles and hover effects (with transition)
         return (
-            <circle 
-                cx={x} 
-                cy={y} 
-                r={r} 
-                className={spec.className ?? "viz-signal"} 
-            />
+            <g transform={`translate(${x}, ${y})`}>
+                <g className={spec.className ?? "viz-signal"}>
+                    {/* Hit Area */}
+                    <circle r={10} fill="transparent" stroke="none" />
+                    {/* Visual Shape */}
+                    <circle r={r} className="viz-signal-shape" />
+                </g>
+            </g>
         );
     }
 };
