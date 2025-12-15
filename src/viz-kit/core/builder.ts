@@ -5,25 +5,23 @@ import type {
   NodeLabel,
   EdgeLabel,
   AnimationConfig,
+  VizOverlaySpec,
+  VizGridConfig,
 } from "./types";
 
 interface VizBuilder {
   view(w: number, h: number): VizBuilder;
   grid(cols: number, rows: number, padding?: { x: number; y: number }): VizBuilder;
+  overlay<T>(id: string, params: T, key?: string): VizBuilder;
   node(id: string): NodeBuilder;
   edge(from: string, to: string, id?: string): EdgeBuilder;
   build(): VizScene;
 
   // Internal helper for NodeBuilder to access grid config
-  _getGridConfig(): GridConfig | null;
+  _getGridConfig(): VizGridConfig | null;
   _getViewBox(): { w: number; h: number };
 }
-
-interface GridConfig {
-    cols: number;
-    rows: number;
-    padding: { x: number; y: number };
-}
+// Removed local GridConfig interface
 
 interface NodeBuilder {
   at(x: number, y: number): NodeBuilder;
@@ -65,9 +63,10 @@ class VizBuilderImpl implements VizBuilder {
   private _viewBox = { w: 800, h: 600 };
   private _nodes = new Map<string, Partial<VizNode>>();
   private _edges = new Map<string, Partial<VizEdge>>();
+  private _overlays: VizOverlaySpec[] = [];
   private _nodeOrder: string[] = [];
   private _edgeOrder: string[] = [];
-  private _gridConfig: GridConfig | null = null;
+  private _gridConfig: VizGridConfig | null = null;
 
   view(w: number, h: number): VizBuilder {
     this._viewBox = { w, h };
@@ -76,6 +75,11 @@ class VizBuilderImpl implements VizBuilder {
 
   grid(cols: number, rows: number, padding: { x: number; y: number } = { x: 20, y: 20 }): VizBuilder {
       this._gridConfig = { cols, rows, padding };
+      return this;
+  }
+
+  overlay<T>(id: string, params: T, key?: string): VizBuilder {
+      this._overlays.push({ id, params, key });
       return this;
   }
 
@@ -112,12 +116,14 @@ class VizBuilderImpl implements VizBuilder {
 
     return {
       viewBox: this._viewBox,
+      grid: this._gridConfig || undefined,
       nodes,
       edges,
+      overlays: this._overlays,
     };
   }
 
-  _getGridConfig(): GridConfig | null {
+  _getGridConfig(): VizGridConfig | null {
       return this._gridConfig;
   }
 
@@ -200,7 +206,10 @@ class NodeBuilderImpl implements NodeBuilder {
   }
 
   animate(type: string, config?: AnimationConfig): NodeBuilder {
-      this.nodeDef.animation = { type, config };
+      if (!this.nodeDef.animations) {
+          this.nodeDef.animations = [];
+      }
+      this.nodeDef.animations.push({ id: type, params: config });
       return this;
   }
 
@@ -264,7 +273,10 @@ class EdgeBuilderImpl implements EdgeBuilder {
   }
 
   animate(type: string, config?: AnimationConfig): EdgeBuilder {
-      this.edgeDef.animation = { type, config };
+      if (!this.edgeDef.animations) {
+          this.edgeDef.animations = [];
+      }
+      this.edgeDef.animations.push({ id: type, params: config });
       return this;
   }
 

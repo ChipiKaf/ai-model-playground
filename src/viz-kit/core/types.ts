@@ -19,9 +19,11 @@ export interface AnimationConfig {
   [key: string]: any;
 }
 
-export interface VizAnimation {
-  type: string;
-  config?: AnimationConfig;
+// Generic animation specification (request)
+export interface VizAnimSpec<T = any> {
+  id: string; // e.g. "flow"
+  params?: T;
+  when?: boolean; // Condition gate
 }
 
 export interface VizNode {
@@ -32,7 +34,7 @@ export interface VizNode {
   className?: string; // e.g. "active", "input-layer"
   data?: unknown; // User payload
   onClick?: (id: string, node: VizNode) => void;
-  animation?: VizAnimation;
+  animations?: VizAnimSpec[];
 }
 
 export interface EdgeLabel {
@@ -53,18 +55,26 @@ export interface VizEdge {
   hitArea?: number; // width in px
   data?: unknown;
   onClick?: (id: string, edge: VizEdge) => void;
-  animation?: VizAnimation;
+  animations?: VizAnimSpec[];
 }
 
-export type VizOverlay = {
-  kind: "custom"; // placeholder for now
-  id: string;
-  render?: unknown;
+export type VizOverlaySpec<T = any> = {
+  id: string;              // overlay kind, e.g. "signal"
+  key?: string;            // stable key (optional)
+  params: T;         // overlay data
+  className?: string; // e.g. "viz-signal-red"
 };
+
+export interface VizGridConfig {
+  cols: number;
+  rows: number;
+  padding: { x: number; y: number };
+}
 
 export type VizScene = {
   viewBox: { w: number; h: number };
+  grid?: VizGridConfig;
   nodes: VizNode[];
   edges: VizEdge[];
-  overlays?: VizOverlay[];
+  overlays?: VizOverlaySpec[];
 };

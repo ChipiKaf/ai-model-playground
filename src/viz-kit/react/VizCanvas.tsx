@@ -1,5 +1,7 @@
 import React, { useMemo } from "react";
 import type { VizScene, VizNode } from "../core/types";
+import { AnimationRegistry, defaultRegistry } from "./registries/AnimationRegistry";
+import { OverlayRegistry, defaultOverlayRegistry } from "./registries/OverlayRegistry";
 
 import "./VizCanvas.scss";
 
@@ -7,6 +9,8 @@ export interface VizCanvasProps {
   scene: VizScene;
   className?: string; // Container class
   children?: React.ReactNode; // For custom overlays (lines, signals, etc)
+  animationRegistry?: AnimationRegistry;
+  overlayRegistry?: OverlayRegistry;
 }
 
 // Helper hook for smooth node transitions
@@ -111,7 +115,8 @@ function useAnimatedNodes(targetNodes: VizNode[]) {
     return displayNodes;
 }
 
-export function VizCanvas({ scene, className, children }: VizCanvasProps) {
+export function VizCanvas(props: VizCanvasProps) {
+  const { scene, className, children } = props;
   const { viewBox, nodes, edges } = scene;
   
   // Interpolate nodes for smooth movement
@@ -123,6 +128,9 @@ export function VizCanvas({ scene, className, children }: VizCanvasProps) {
     animatedNodes.forEach(n => map.set(n.id, n));
     return map;
   }, [animatedNodes]);
+
+  // Build Edge Map for easy lookup
+  const edgesById = useMemo(() => new Map(scene.edges.map(e => [e.id, e])), [scene.edges]);
 
   return (
     <div className={`viz-canvas ${className || ""}`}>
@@ -150,20 +158,34 @@ export function VizCanvas({ scene, className, children }: VizCanvasProps) {
             const end = nodesById.get(edge.to);
             if (!start || !end) return null;
 
-            // Resolve animation class
-            const animClass = edge.animation ? `viz-anim-${edge.animation.type}` : "";
+            // Animation Logic
+            // The user can provide a custom registry, or we fall back to default
+            const registry = props.animationRegistry || defaultRegistry;
             
-            // Map config to CSS variables
-            const animStyle = edge.animation?.config ? {
-                '--viz-anim-duration': edge.animation.config.duration,
-                ...edge.animation.config // Allow other arbitrary CSS vars if needed
-            } as React.CSSProperties : undefined;
+            let animClasses = "";
+            let animStyles: React.CSSProperties = {};
+
+            if (edge.animations) {
+                edge.animations.forEach(spec => {
+                    const renderer = registry.getEdgeRenderer(spec.id);
+                    if (renderer) {
+                        if (renderer.getClass) {
+                            animClasses += ` ${renderer.getClass({ spec, element: edge })}`;
+                        }
+                        if (renderer.getStyle) {
+                            Object.assign(animStyles, renderer.getStyle({ spec, element: edge }));
+                        }
+                    } else {
+                        console.warn(`VizCanvas: No renderer found for animation '${spec.id}'`);
+                    }
+                });
+            }
 
             return (
               <g 
                 key={edge.id} 
-                className={`viz-edge-group ${edge.className || ""} ${animClass}`}
-                style={animStyle}
+                className={`viz-edge-group ${edge.className || ""} ${animClasses}`}
+                style={animStyles}
               >
                 {/* Visual Line */}
                 <line
@@ -248,6 +270,28 @@ export function VizCanvas({ scene, className, children }: VizCanvasProps) {
               )}
             </g>
           ))}
+        </g>
+
+        {/* 3. Overlays */}
+        <g className="viz-layer-overlays">
+            {(scene.overlays || []).map((spec, i) => {
+                const overlayReg = props.overlayRegistry || defaultOverlayRegistry;
+                const renderer = overlayReg.get(spec.id);
+                if (!renderer) {
+                    console.warn(`VizCanvas: No renderer found for overlay '${spec.id}'`);
+                    return null;
+                }
+
+                return (
+                    <React.Fragment key={spec.key ?? `${spec.id}-${i}`}>
+                        {renderer.render({ 
+                            spec, 
+                            nodesById: nodesById, // Use interpolated positions
+                            edgesById: edgesById 
+                        })}
+                    </React.Fragment>
+                );
+            })}
         </g>
 
         {/* 6. Custom Overlays (Children) */}
