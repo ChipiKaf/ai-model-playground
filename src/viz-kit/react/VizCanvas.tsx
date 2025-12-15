@@ -1,5 +1,7 @@
 import React, { useMemo } from "react";
 import type { VizScene, VizNode } from "../core/types";
+import { AnimationRegistry, defaultRegistry } from "./registries/AnimationRegistry";
+import { OverlayRegistry, defaultOverlayRegistry } from "./registries/OverlayRegistry";
 
 import "./VizCanvas.scss";
 
@@ -7,17 +9,104 @@ export interface VizCanvasProps {
   scene: VizScene;
   className?: string; // Container class
   children?: React.ReactNode; // For custom overlays (lines, signals, etc)
+  animationRegistry?: AnimationRegistry;
+  overlayRegistry?: OverlayRegistry;
 }
 
-export function VizCanvas({ scene, className, children }: VizCanvasProps) {
+// Helper hook for smooth node transitions
+function useAnimatedNodes(targetNodes: VizNode[]) {
+    const [displayNodes, setDisplayNodes] = React.useState(targetNodes);
+    
+    // Ref to track latest target
+    const targetNodesRef = React.useRef(targetNodes);
+    targetNodesRef.current = targetNodes;
+    
+    // Ref for current interpolated values to avoid react batched updates lagging
+    const currentPosIs = React.useRef(new Map<string, {x:number, y:number}>());
+
+    React.useLayoutEffect(() => {
+        // Initialize currentPosIs with new nodes if missing
+        targetNodes.forEach(n => {
+             if(!currentPosIs.current.has(n.id)) {
+                 currentPosIs.current.set(n.id, n.pos);
+             }
+        });
+        
+        let animationFrameId: number;
+        const startTime = performance.now();
+        const duration = 300; // ms
+        
+        // Snapshot starting positions
+        const startPositions = new Map<string, {x:number, y:number}>();
+        currentPosIs.current.forEach((pos, id) => startPositions.set(id, {...pos}));
+        
+        const tick = (now: number) => {
+            const elapsed = now - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+            // Ease out cubic
+            const ease = 1 - Math.pow(1 - progress, 3);
+            
+            let hasChanges = false;
+            
+            // Interpolate towards target
+            const nextNodes = targetNodesRef.current.map(target => {
+                const start = startPositions.get(target.id);
+                if (!start) return target; // New node, snap to target
+                
+                if (progress >= 1) {
+                    currentPosIs.current.set(target.id, target.pos);
+                    return target;
+                }
+                
+                const newX = start.x + (target.pos.x - start.x) * ease;
+                const newY = start.y + (target.pos.y - start.y) * ease;
+                
+                // Optimization: round to 0.1 to avoid producing new objects if close
+                if (Math.abs(newX - target.pos.x) < 0.1 && Math.abs(newY - target.pos.y) < 0.1) {
+                     currentPosIs.current.set(target.id, target.pos);
+                     return target;
+                }
+                
+                hasChanges = true;
+                const newPos = { x: newX, y: newY };
+                currentPosIs.current.set(target.id, newPos);
+                
+                return { ...target, pos: newPos };
+            });
+            
+            if (hasChanges || progress < 1) {
+                setDisplayNodes(nextNodes);
+                if (progress < 1) {
+                    animationFrameId = requestAnimationFrame(tick);
+                }
+            } else {
+                 setDisplayNodes(targetNodesRef.current);
+            }
+        };
+        
+        animationFrameId = requestAnimationFrame(tick);
+        return () => cancelAnimationFrame(animationFrameId);
+    }, [targetNodes]);
+    
+    return displayNodes;
+}
+
+export function VizCanvas(props: VizCanvasProps) {
+  const { scene, className, children } = props;
   const { viewBox, nodes, edges } = scene;
+  
+  // Interpolate nodes for smooth movement
+  const animatedNodes = useAnimatedNodes(nodes);
   
   // Create a map for quick node lookup by ID to calculate edge paths
   const nodesById = useMemo(() => {
     const map = new Map<string, VizNode>();
-    nodes.forEach(n => map.set(n.id, n));
+    animatedNodes.forEach(n => map.set(n.id, n));
     return map;
-  }, [nodes]);
+  }, [animatedNodes]);
+
+  // Build Edge Map for easy lookup
+  const edgesById = useMemo(() => new Map(scene.edges.map(e => [e.id, e])), [scene.edges]);
 
   return (
     <div className={`viz-canvas ${className || ""}`}>
@@ -45,8 +134,35 @@ export function VizCanvas({ scene, className, children }: VizCanvasProps) {
             const end = nodesById.get(edge.to);
             if (!start || !end) return null;
 
+            // Animation Logic
+            // The user can provide a custom registry, or we fall back to default
+            const registry = props.animationRegistry || defaultRegistry;
+            
+            let animClasses = "";
+            let animStyles: React.CSSProperties = {};
+
+            if (edge.animations) {
+                edge.animations.forEach(spec => {
+                    const renderer = registry.getEdgeRenderer(spec.id);
+                    if (renderer) {
+                        if (renderer.getClass) {
+                            animClasses += ` ${renderer.getClass({ spec, element: edge })}`;
+                        }
+                        if (renderer.getStyle) {
+                            Object.assign(animStyles, renderer.getStyle({ spec, element: edge }));
+                        }
+                    } else {
+                        console.warn(`VizCanvas: No renderer found for animation '${spec.id}'`);
+                    }
+                });
+            }
+
             return (
-              <g key={edge.id} className={`viz-edge-group ${edge.className || ""}`}>
+              <g 
+                key={edge.id} 
+                className={`viz-edge-group ${edge.className || ""} ${animClasses}`}
+                style={animStyles}
+              >
                 {/* Visual Line */}
                 <line
                   x1={start.pos.x}
@@ -98,10 +214,13 @@ export function VizCanvas({ scene, className, children }: VizCanvasProps) {
         
         {/* 2. Nodes (Shape + Labels) */}
         <g className="viz-layer-nodes">
-          {nodes.map(node => (
+          {animatedNodes.map(node => (
             <g 
                 key={node.id} 
                 className={`viz-node-group ${node.className || ""}`}
+                // Use transform for consistent positioning logic if we moved to pure CSS, 
+                // but since we are interpolating 'pos', we can just use RenderShape with updated pos.
+                // However, let's keep the group for containment.
                 onClick={(e) => {
                     if (node.onClick) {
                         e.stopPropagation();
@@ -127,6 +246,29 @@ export function VizCanvas({ scene, className, children }: VizCanvasProps) {
               )}
             </g>
           ))}
+        </g>
+
+        {/* 3. Overlays */}
+        <g className="viz-layer-overlays">
+            {(scene.overlays || []).map((spec, i) => {
+                const overlayReg = props.overlayRegistry || defaultOverlayRegistry;
+                const renderer = overlayReg.get(spec.id);
+                if (!renderer) {
+                    console.warn(`VizCanvas: No renderer found for overlay '${spec.id}'`);
+                    return null;
+                }
+
+                return (
+                    <React.Fragment key={spec.key ?? `${spec.id}-${i}`}>
+                        {renderer.render({ 
+                            spec, 
+                            nodesById: nodesById, // Use interpolated positions
+                            edgesById: edgesById,
+                            scene: scene,
+                        })}
+                    </React.Fragment>
+                );
+            })}
         </g>
 
         {/* 6. Custom Overlays (Children) */}

@@ -44,6 +44,8 @@ const NetworkVisualization: React.FC<NetworkVisualizationProps> = ({
     const rows = Math.max(...layerSizes);
     const b = viz().view(width, height).grid(cols, rows, { x: 50, y: 50 });
 
+
+
     // Nodes
     neurons.forEach((neuron) => {
       const val = neuronValues[`${neuron.layerIndex}-${neuron.neuronIndex}`];
@@ -109,84 +111,54 @@ const NetworkVisualization: React.FC<NetworkVisualizationProps> = ({
 
     // Connections
     connections.forEach((conn) => {
-        let edgeClass = 'connection';
-        // Check "idle flow" condition: active layer matches source, source output > 0, weight > 0
-        // We add a class if this condition is met.
-        if (activeLayer === conn.sourceLayer && neuronValues[`${conn.sourceLayer}-${conn.sourceIndex}`]?.sum > 0 && conn.weight > 0) {
-            edgeClass += ' idle-flow';
-        }
-
-        b.edge(`${conn.sourceLayer}-${conn.sourceIndex}`, `${conn.sourceLayer + 1}-${conn.targetIndex}`, conn.id)
+        const bEdge = b.edge(`${conn.sourceLayer}-${conn.sourceIndex}`, `${conn.sourceLayer + 1}-${conn.targetIndex}`, conn.id)
          .label(conn.weight.toFixed(2), { className: 'weight-label' })
-         .class(edgeClass)
+         .class('connection')
          .hitArea(10); // Standard hit area width
+
+        // Check "flow" condition: active layer matches source, source output > 0, weight > 0
+        if (activeLayer === conn.sourceLayer && neuronValues[`${conn.sourceLayer}-${conn.sourceIndex}`]?.sum > 0 && conn.weight > 0) {
+            bEdge.animate('flow', { duration: '2s' });
+        }
+    });
+
+    // Add Signals as Overlays
+    signals.forEach(sig => {
+        b.overlay('signal', {
+            from: `${sig.sourceLayer}-${sig.sourceIndex}`,
+            to: `${sig.targetLayer}-${sig.targetIndex}`,
+            progress: sig.progress,
+            magnitude: sig.sourceOutput,
+        }, sig.id);
+    });
+
+    // Generate Grid Labels Dynamically
+    // Only label layers that have neurons (size > 0)
+    const colLabels: Record<number, string> = {};
+    const validLayers = layerSizes
+        .map((size, index) => ({ size, index }))
+        .filter(l => l.size > 0);
+        
+    validLayers.forEach((layer, i) => {
+        if (i === 0) colLabels[layer.index] = 'Input';
+        else if (i === validLayers.length - 1) colLabels[layer.index] = 'Output';
+        else colLabels[layer.index] = 'Hidden';
+    });
+
+
+
+    // Add Grid Labels
+    b.overlay('grid-labels', {
+        colLabels: colLabels,
+        yOffset: 20,
     });
 
     return b.build();
-  }, [neurons, connections, neuronValues, activeLayer, dispatch, width, height, layerSizes]);
-
-  // Create lookup for node positions from the generated scene
-  // This ensures signals align with Grid layout
-  const nodePosMap = useMemo(() => {
-      const map = new Map<string, {x: number, y: number}>();
-      scene.nodes.forEach(n => map.set(n.id, n.pos));
-      return map;
-  }, [scene]);
+  }, [neurons, connections, neuronValues, activeLayer, dispatch, width, height, layerSizes, signals]);
 
   return (
     <div className="network-visualization">
-      <VizCanvas scene={scene}>
-        {/* Layer Labels */}
-        <g className="labels">
-          {layerSizes.map((_: number, idx: number) => {
-            // Find a node in this layer to get X position
-            const layerNode = scene.nodes.find(n => n.id.startsWith(`${idx}-`));
-            if (!layerNode) return null;
-
-            return (
-              <text
-                key={`label-${idx}`}
-                x={layerNode.pos.x}
-                y={height - 20} // Slightly higher padding
-                className="layer-label"
-              >
-                {idx === 0
-                  ? 'Input Layer'
-                  : idx === layerSizes.length - 1
-                  ? 'Output Layer'
-                  : `Hidden Layer ${idx}`}
-              </text>
-            );
-          })}
-        </g>
-
-         {/* Signals */}
-        <g className="signals">
-          {signals.map((sig) => {
-            const startPos = nodePosMap.get(`${sig.sourceLayer}-${sig.sourceIndex}`);
-            const endPos = nodePosMap.get(`${sig.targetLayer}-${sig.targetIndex}`);
-            
-            if (!startPos || !endPos) return null;
-
-            const currentX = startPos.x + (endPos.x - startPos.x) * sig.progress;
-            const currentY = startPos.y + (endPos.y - startPos.y) * sig.progress;
-
-            let v = Math.abs(sig.sourceOutput);
-            if (v > 1) v = 1;
-            const radius = 2 + v * 4;
-
-            return (
-              <circle
-                key={sig.id}
-                cx={currentX}
-                cy={currentY}
-                r={radius}
-                className="signal"
-              />
-            );
-          })}
-        </g>
-      </VizCanvas>
+      <VizCanvas scene={scene} className="ann-viz" />
     </div>
   );
 };

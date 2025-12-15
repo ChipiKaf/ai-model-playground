@@ -55,14 +55,22 @@
     }
   }
 
-  // Idle flow class is applied to the GROUP now via .class() in DSL
-  .viz-edge-group.idle-flow {
+  // Flow animation class is applied via .animate('flow')
+  .viz-edge-group.viz-anim-flow {
      .viz-edge {
          stroke: #60a5fa;
          stroke-width: 2;
-         stroke-dasharray: 4;
-         animation: flow 1s linear infinite;
          opacity: 0.5;
+         // Animation (dasharray/keyframes) is handled by VizKit base styles
+     }
+
+     &:hover {
+         .viz-edge {
+             stroke: #3b82f6; // Brighter Blue
+             stroke-width: 3;
+             opacity: 1;
+             filter: drop-shadow(0 0 4px rgba(59, 130, 246, 0.5));
+         }
      }
   }
 
@@ -147,11 +155,4 @@
   }
 }
 
-@keyframes flow {
-  from {
-    stroke-dashoffset: 8;
-  }
-  to {
-    stroke-dashoffset: 0;
-  }
-}
+

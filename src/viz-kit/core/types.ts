@@ -12,45 +12,69 @@ export type NodeLabel = {
   className?: string;
 };
 
-export type VizNode = {
+export type AnimationDuration = `${number}s`;
+
+export interface AnimationConfig {
+  duration?: AnimationDuration;
+  [key: string]: any;
+}
+
+// Generic animation specification (request)
+export interface VizAnimSpec<T = any> {
+  id: string; // e.g. "flow"
+  params?: T;
+  when?: boolean; // Condition gate
+}
+
+export interface VizNode {
   id: string;
   pos: Vec2;
   shape: NodeShape;
-  className?: string;
   label?: NodeLabel;
-  data?: unknown;
-  onClick?: (nodeId: string, node: VizNode) => void;
-};
+  className?: string; // e.g. "active", "input-layer"
+  data?: unknown; // User payload
+  onClick?: (id: string, node: VizNode) => void;
+  animations?: VizAnimSpec[];
+}
 
-export type EdgeLabel = {
+export interface EdgeLabel {
   text: string;
-  position?: "mid"; // MVP only
+  position: "start" | "mid" | "end"; // Simplified for now
+  className?: string;
   dx?: number;
   dy?: number;
-  className?: string;
-};
+}
 
-export type VizEdge = {
+export interface VizEdge {
   id: string;
   from: string;
   to: string;
-  className?: string;
   label?: EdgeLabel;
   markerEnd?: "arrow" | "none";
-  hitArea?: number; // px stroke width for transparent hit line
+  className?: string;
+  hitArea?: number; // width in px
   data?: unknown;
-  onClick?: (edgeId: string, edge: VizEdge) => void;
+  onClick?: (id: string, edge: VizEdge) => void;
+  animations?: VizAnimSpec[];
+}
+
+export type VizOverlaySpec<T = any> = {
+  id: string;              // overlay kind, e.g. "signal"
+  key?: string;            // stable key (optional)
+  params: T;         // overlay data
+  className?: string; // e.g. "viz-signal-red"
 };
 
-export type VizOverlay = {
-  kind: "custom"; // placeholder for now
-  id: string;
-  render?: unknown;
-};
+export interface VizGridConfig {
+  cols: number;
+  rows: number;
+  padding: { x: number; y: number };
+}
 
 export type VizScene = {
   viewBox: { w: number; h: number };
+  grid?: VizGridConfig;
   nodes: VizNode[];
   edges: VizEdge[];
-  overlays?: VizOverlay[];
+  overlays?: VizOverlaySpec[];
 };
