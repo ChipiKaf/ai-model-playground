@@ -65,30 +65,54 @@ export const signalOverlay: OverlayRenderer<{
 };
 
 export const gridLabelsOverlay: OverlayRenderer<{
-    labels: Record<number, string>; // colIndex -> text
-    yOffset?: number;
+    colLabels?: Record<number, string>; // colIndex -> text (Column Labels)
+    rowLabels?: Record<number, string>; // rowIndex -> text (Row Labels)
+    yOffset?: number; // for col labels
+    xOffset?: number; // for row labels
 }> = {
     render: ({ spec, scene }) => {
         const grid = scene.grid;
         if (!grid) return null;
 
-        const { w } = scene.viewBox; // Assume width is viewbox width
-        const { labels, yOffset = 20 } = spec.params;
+        const { w, h } = scene.viewBox;
+        const { colLabels, rowLabels, yOffset = 20, xOffset = 20 } = spec.params;
 
         const cellW = (w - (grid.padding.x * 2)) / grid.cols;
+        const cellH = (h - (grid.padding.y * 2)) / grid.rows;
 
         return (
             <>
-                {Object.entries(labels).map(([colStr, text]) => {
+                {/* Column Labels */}
+                {colLabels && Object.entries(colLabels).map(([colStr, text]) => {
                     const col = parseInt(colStr, 10);
                     // Center of the column
                     const x = grid.padding.x + (col * cellW) + (cellW / 2);
 
                     return (
                         <text
-                            key={col}
+                            key={`col-${col}`}
                             x={x}
                             y={yOffset}
+                            className={spec.className || "viz-grid-label"}
+                            textAnchor="middle"
+                        >
+                            {text as string}
+                        </text>
+                    );
+                })}
+                
+                {/* Row Labels */}
+                {rowLabels && Object.entries(rowLabels).map(([rowStr, text]) => {
+                    const row = parseInt(rowStr, 10);
+                    // Center of the row
+                    const y = grid.padding.y + (row * cellH) + (cellH / 2);
+
+                    return (
+                        <text
+                            key={`row-${row}`}
+                            x={xOffset}
+                            y={y} // Center vertically in the row
+                            dy=".35em" // Optical vertical centering
                             className={spec.className || "viz-grid-label"}
                             textAnchor="middle"
                         >

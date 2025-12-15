@@ -134,22 +134,23 @@ const NetworkVisualization: React.FC<NetworkVisualizationProps> = ({
 
     // Generate Grid Labels Dynamically
     // Only label layers that have neurons (size > 0)
-    const labels: Record<number, string> = {};
+    const colLabels: Record<number, string> = {};
     const validLayers = layerSizes
         .map((size, index) => ({ size, index }))
+        .filter(l => l.size > 0);
         
     validLayers.forEach((layer, i) => {
-        if (i === 0) labels[layer.index] = 'Input';
-        else if (i === validLayers.length - 1) labels[layer.index] = 'Output';
-        else labels[layer.index] = 'Hidden';
+        if (i === 0) colLabels[layer.index] = 'Input';
+        else if (i === validLayers.length - 1) colLabels[layer.index] = 'Output';
+        else colLabels[layer.index] = 'Hidden';
     });
 
 
 
     // Add Grid Labels
     b.overlay('grid-labels', {
-        labels,
-        yOffset: 20
+        colLabels: colLabels,
+        yOffset: 20,
     });
 
     return b.build();
