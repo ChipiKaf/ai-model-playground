@@ -8,9 +8,18 @@ interface StepIndicatorProps {
   onReset: () => void;
   passCount?: number;
   isProcessing?: boolean;
+  nextButtonConfig?: {
+      text?: string;
+      processingText?: string;
+      color?: string;
+  };
+  restartButtonConfig?: {
+      text?: string;
+      color?: string;
+  };
 }
 
-const StepIndicator: React.FC<StepIndicatorProps> = ({ steps, currentStep, onNextStep, onReset, passCount = 1, isProcessing = false }) => {
+const StepIndicator: React.FC<StepIndicatorProps> = ({ steps, currentStep, onNextStep, onReset, passCount = 1, isProcessing = false, nextButtonConfig, restartButtonConfig }) => {
   const isFinished = currentStep >= steps.length;
 
   return (
@@ -41,16 +50,19 @@ const StepIndicator: React.FC<StepIndicatorProps> = ({ steps, currentStep, onNex
 
       <div className="controls">
         {isFinished ? (
-          <button onClick={onReset} style={{ background: '#4f46e5' }}>
-            Start Next Pass
+          <button onClick={onReset} style={{ background: restartButtonConfig?.color || '#4f46e5' }}>
+            {restartButtonConfig?.text || 'Start Next Pass'}
           </button>
         ) : (
           <button 
             onClick={onNextStep} 
             disabled={isProcessing}
-            style={isProcessing ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
+            style={{
+                ...(isProcessing ? { opacity: 0.5, cursor: 'not-allowed' } : {}),
+                ...(nextButtonConfig?.color ? { background: nextButtonConfig.color } : {})
+            }}
           >
-            {isProcessing ? 'Processing...' : 'Next Step'}
+            {isProcessing ? (nextButtonConfig?.processingText || 'Processing...') : (nextButtonConfig?.text || 'Next Step')}
           </button>
         )}
       </div>

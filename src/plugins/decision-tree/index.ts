@@ -12,9 +12,12 @@ const DecisionTreePlugin: ModelPlugin<DecisionTreeState, Action, LocalRootState,
   initialState,
   reducer: decisionTreeReducer,
   Component: DecisionTreeVisualization,
+  restartConfig: {
+    text: 'Restart',
+  },
   getSteps: (_state: DecisionTreeState) => {
     return [
-        { label: 'Initialization', autoAdvance: false },
+        { label: 'Initialization', autoAdvance: false, nextButtonText: 'Start' },
         { label: 'Level 1 Decision', autoAdvance: false },
         { label: 'Level 2 Decision', autoAdvance: true }
     ];
