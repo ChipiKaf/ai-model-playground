@@ -140,9 +140,9 @@ const NetworkVisualization: React.FC<NetworkVisualizationProps> = ({
         .filter(l => l.size > 0);
         
     validLayers.forEach((layer, i) => {
-        if (i === 0) colLabels[layer.index] = 'Input';
-        else if (i === validLayers.length - 1) colLabels[layer.index] = 'Output';
-        else colLabels[layer.index] = 'Hidden';
+        if (i === 0) colLabels[layer.index] = 'Input Layer';
+        else if (i === validLayers.length - 1) colLabels[layer.index] = 'Output Layer';
+        else colLabels[layer.index] = 'Hidden Layer';
     });
 
 

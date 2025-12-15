@@ -12,8 +12,15 @@ const DecisionTreePlugin: ModelPlugin<DecisionTreeState, Action, LocalRootState,
   initialState,
   reducer: decisionTreeReducer,
   Component: DecisionTreeVisualization,
+  restartConfig: {
+    text: 'Restart',
+  },
   getSteps: (_state: DecisionTreeState) => {
-    return ['Step 1', 'Step 2'];
+    return [
+        { label: 'Initialization', autoAdvance: false, nextButtonText: 'Start' },
+        { label: 'Level 1 Decision', autoAdvance: false },
+        { label: 'Level 2 Decision', autoAdvance: true }
+    ];
   },
   init: (dispatch) => {
     dispatch({ type: 'decisionTree/resetTree' }); // Dispatching raw action or import action creator

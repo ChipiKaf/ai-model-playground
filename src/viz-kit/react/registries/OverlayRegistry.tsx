@@ -126,6 +126,44 @@ export const gridLabelsOverlay: OverlayRenderer<{
     }
 };
 
+// Built-in Overlay: Data Points (for Decision Tree)
+export const dataPointOverlay: OverlayRenderer<{
+    points: { id: string; currentNodeId: string; [key: string]: any }[];
+}> = {
+    render: ({ spec, nodesById }) => {
+        const { points } = spec.params;
+        
+        return (
+            <>
+                {points.map(point => {
+                    const node = nodesById.get(point.currentNodeId);
+                    if (!node) return null;
+
+                    // Deterministic offset based on ID to avoid stacking
+                    // Assuming format "point-N" or similar
+                    const idNum = parseInt(point.id.split('-')[1] || '0', 10);
+                    const offsetX = ((idNum % 5) - 2) * 10;
+                    const offsetY = ((idNum % 3) - 1) * 10;
+
+                    const x = node.pos.x + offsetX;
+                    const y = node.pos.y + offsetY;
+
+                    return (
+                        <circle
+                            key={point.id}
+                            cx={x}
+                            cy={y}
+                            r={6}
+                            className={spec.className ?? "viz-data-point"}
+                        />
+                    );
+                })}
+            </>
+        );
+    }
+};
+
 export const defaultOverlayRegistry = new OverlayRegistry()
     .register("signal", signalOverlay)
-    .register("grid-labels", gridLabelsOverlay);
+    .register("grid-labels", gridLabelsOverlay)
+    .register("data-points", dataPointOverlay);

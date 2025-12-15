@@ -1,4 +1,5 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
+import { resetSimulation } from '../../store/slices/simulationSlice';
 
 export interface TreeNode {
   id: string;
@@ -122,17 +123,21 @@ export const initialState: DecisionTreeState = {
   speed: 1
 };
 
+const resetState = (state: DecisionTreeState) => {
+    state.dataPoints = generateDataPoints(10);
+    state.dataPoints.forEach(p => {
+    p.currentNodeId = state.rootId;
+    p.history = [state.rootId];
+    p.isFinished = false;
+    });
+};
+
 const decisionTreeSlice = createSlice({
   name: 'decisionTree',
   initialState,
   reducers: {
     resetTree(state) {
-      state.dataPoints = generateDataPoints(10);
-      state.dataPoints.forEach(p => {
-        p.currentNodeId = state.rootId;
-        p.history = [state.rootId];
-        p.isFinished = false;
-      });
+      resetState(state);
     },
     stepDataPoints(state) {
       // Move each point to the next node if not finished
@@ -182,6 +187,11 @@ const decisionTreeSlice = createSlice({
     setSpeed(state, action: PayloadAction<number>) {
         state.speed = action.payload;
     }
+  },
+  extraReducers: (builder) => {
+      builder.addCase(resetSimulation, (state) => {
+          resetState(state);
+      });
   },
 });
 

@@ -1,86 +1,99 @@
-.decision-tree-visualization {
+
+.decision-tree-visualization-container {
   width: 100%;
   height: 100%;
   display: flex;
   justify-content: center;
   align-items: center;
-  background: transparent; // Let the Shell's background show through if any
-  position: relative;
+  background: #f8f9fa;
+  border-radius: 12px;
   overflow: hidden;
+  position: relative; // For controls overlay
 
-  // Global transitions
-  * {
-    transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  .decision-tree-visualization {
+     width: 100%;
+     height: 100%;
   }
 
-  svg {
-    // Ensure it takes full space
-  }
-
-  .tree-node {
-    cursor: pointer;
-
-    &.internal {
-      rect {
-        fill: rgba(30, 41, 59, 0.9); // Dark slate
-        stroke: #94a3b8; // Slate 400
-        stroke-width: 2px;
-        filter: drop-shadow(0 0 5px rgba(148, 163, 184, 0.3));
+  // 1. Edges
+  .viz-edge-group {
+      .viz-edge {
+          stroke: #cbd5e1; // Gray-300
+          stroke-width: 2;
+          transition: stroke 0.3s ease;
       }
-      text {
-        fill: #e2e8f0; // Slate 200
-        font-size: 14px;
-        font-weight: 500;
-        pointer-events: none;
-        font-family: 'Inter', sans-serif;
+      &.active .viz-edge {
+          stroke: #94a3b8;
       }
-    }
-
-    &.leaf {
-      circle {
-        fill: rgba(71, 85, 105, 0.9); // Slate 600
-        stroke: #cbd5e1; // Slate 300
-        stroke-width: 2px;
-      }
-      text {
-        fill: #f8fafc;
-        font-size: 12px;
-        font-weight: 600;
-        pointer-events: none;
-      }
-
-      // Dynamic coloring could go here based on classes
-    }
-
-    &:hover {
-      rect, circle {
-        stroke: #60a5fa; // Blue 400
-        filter: drop-shadow(0 0 8px rgba(96, 165, 250, 0.6));
-      }
-    }
-  }
-
-  .tree-link {
-    stroke: #475569; // Slate 600 - subtle connections
-    stroke-width: 2px;
-    stroke-dasharray: 4; // Dashed looks techy? Or solid is better? Let's try solid.
-    stroke-dasharray: 0;
-    transition: stroke 0.3s ease;
   }
 
   .link-label {
-    fill: #94a3b8; // Slate 400
-    font-size: 10px;
-    font-family: monospace;
-    // background hack for SVG text? No, just render text.
+      font-size: 12px;
+      fill: #64748b;
+      font-weight: 500;
+      // Add a subtle background (white glow) to read over lines?
+      text-shadow: 0 0 4px white, 0 0 4px white;
   }
 
-  .data-point {
-    fill: #3b82f6; // Blue 500
-    stroke: #dbeafe; // Blue 100 halo
-    stroke-width: 2px;
-    filter: drop-shadow(0 0 6px rgba(59, 130, 246, 0.8)); // Glowing signal effect
-    transition: cx 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94), cy 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94); // Smoother ease
-    pointer-events: none;
+  // 2. Nodes
+  .viz-node-group {
+      cursor: pointer;
+      transition: transform 0.3s ease;
+
+      .viz-node-shape {
+          stroke-width: 2;
+          transition: all 0.3s ease;
+      }
+
+      // Internal Nodes (Rects)
+      &.internal .viz-node-shape {
+          fill: #fff;
+          stroke: #3b82f6; // Blue
+      }
+
+      // Leaf Nodes (Circles)
+      &.leaf .viz-node-shape {
+          fill: #fff;
+          stroke: #10b981; // Green
+      }
+
+      // Active State
+      &.active .viz-node-shape {
+          stroke: #2563eb; // Stronger Blue
+          stroke-width: 3px;
+          filter: drop-shadow(0 0 10px rgba(37, 99, 235, 0.6));
+          fill: #eff6ff;
+      }
+
+      &:hover {
+          .viz-node-shape {
+              stroke-width: 3;
+              filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.1));
+          }
+      }
+  }
+
+  .node-label {
+      font-size: 14px;
+      font-weight: 600;
+      fill: #1e293b;
+      pointer-events: none;
+  }
+
+  // 3. Data Points (Overlay)
+  .viz-data-point {
+      fill: #f59e0b; // Amber-500
+      stroke: #fff;
+      stroke-width: 2;
+      filter: drop-shadow(0 2px 4px rgba(245, 158, 11, 0.4));
+      
+      // Smooth movement
+      transition: cx 0.5s cubic-bezier(0.4, 0, 0.2, 1), cy 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .controls-overlay {
+      position: absolute;
+      bottom: 20px;
+      right: 20px;
   }
 }

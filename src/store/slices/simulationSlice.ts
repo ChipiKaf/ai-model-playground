@@ -42,6 +42,9 @@ const simulationSlice = createSlice({
     },
     resetSimulation(state) {
         state.currentStep = 0;
+        state.passCount = 1;
+        state.isPlaying = false;
+        state.selectedNeuron = null;
     },
     setIsPlaying(state, action: PayloadAction<boolean>) {
       state.isPlaying = action.payload;

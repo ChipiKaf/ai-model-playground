@@ -19,9 +19,33 @@ export interface ModelPlugin<State = any, Actions extends Action = any, TRootSta
   Controls?: React.FC; // Optional settings panel
   
   // Helpers
-  getSteps: (state: State) => string[];
+  // Customization
+  restartConfig?: {
+      text?: string;
+      color?: string;
+  };
+
+  getSteps: (state: State) => (string | ModelStep)[];
   
   // Lifecycle & Data Access
   init: (dispatch: TDispatch) => void;
   selector: (state: TRootState) => State;
+}
+
+export interface ModelStep {
+    label: string;
+    /** 
+     * If true, the shell will automatically proceed to the next step 
+     * after this step's animation/action is complete, without waiting for user input.
+     * Default: false (Requires "Next Step" button press)
+     */
+    autoAdvance?: boolean;
+    
+    // Customization for the "Next Step" button
+    /** Text to display on the button when waiting for user input. Default: "Next Step" */
+    nextButtonText?: string;
+    /** Text to display on the button while processing/animating. Default: "Processing..." */
+    processingText?: string;
+    /** Background color of the button. Can be a CSS color string. Default: Theme blue */
+    nextButtonColor?: string;
 }
