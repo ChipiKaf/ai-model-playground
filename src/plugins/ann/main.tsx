@@ -41,8 +41,11 @@ const NetworkVisualization: React.FC<NetworkVisualizationProps> = ({
   const scene = useMemo(() => {
     // Grid Configuration
     const cols = layerSizes.length;
+    console.log(`cols: ${cols}`)
     const rows = Math.max(...layerSizes);
     const b = viz().view(width, height).grid(cols, rows, { x: 50, y: 50 });
+
+
 
     // Nodes
     neurons.forEach((neuron) => {
@@ -130,31 +133,32 @@ const NetworkVisualization: React.FC<NetworkVisualizationProps> = ({
         }, sig.id);
     });
 
+    // Generate Grid Labels Dynamically
+    // Only label layers that have neurons (size > 0)
+    const labels: Record<number, string> = {};
+    const validLayers = layerSizes
+        .map((size, index) => ({ size, index }))
+        
+    validLayers.forEach((layer, i) => {
+        if (i === 0) labels[layer.index] = 'Input';
+        else if (i === validLayers.length - 1) labels[layer.index] = 'Output';
+        else labels[layer.index] = 'Hidden';
+    });
+
+
+
+    // Add Grid Labels
+    b.overlay('grid-labels', {
+        labels,
+        yOffset: 20
+    });
+
     return b.build();
   }, [neurons, connections, neuronValues, activeLayer, dispatch, width, height, layerSizes, signals]);
 
   return (
     <div className="network-visualization">
-      <VizCanvas scene={scene} className="ann-viz">
-        {/* Layer labels overlay */}
-        <div className="absolute inset-0 pointer-events-none">
-            {Array.from({ length: 3 }).map((_, i) => {
-                const grid = scene.grid;
-                if (!grid) return null;
-                
-                const cellW = (width - (grid.padding.x * 2)) / grid.cols;
-                // Center of the column
-                const x = grid.padding.x + (i * 2 * cellW) + (cellW / 2); // i*2 because layers are 0, 2, 4
-                
-                return (
-                    <div key={i} className="absolute text-sm font-bold text-gray-400" 
-                         style={{ left: x, top: 10, transform: 'translateX(-50%)' }}>
-                        {i === 0 ? 'Input' : i === 1 ? 'Hidden' : 'Output'}
-                    </div>
-                );
-            })}
-        </div>
-      </VizCanvas>
+      <VizCanvas scene={scene} className="ann-viz" />
     </div>
   );
 };

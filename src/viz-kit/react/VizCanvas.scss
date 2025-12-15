@@ -36,3 +36,11 @@
 .viz-node-group {
     transition: transform 0.3s ease-out, opacity 0.3s ease-out;
 }
+
+// Overlay Classes
+.viz-grid-label {
+  fill: #6B7280; // Gray-500
+  font-size: 14px;
+  font-weight: 600;
+  opacity: 1;
+}

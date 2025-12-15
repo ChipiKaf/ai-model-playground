@@ -1,10 +1,11 @@
 import type React from 'react';
-import type { VizNode, VizEdge, VizOverlaySpec } from '../../core/types';
+import type { VizNode, VizEdge, VizOverlaySpec, VizScene } from '../../core/types';
 
 export interface OverlayRenderContext<T = any> {
     spec: VizOverlaySpec<T>;
     nodesById: Map<string, VizNode>;
     edgesById: Map<string, VizEdge>;
+    scene: VizScene;
 }
 
 export interface OverlayRenderer<T = any> {
@@ -63,5 +64,43 @@ export const signalOverlay: OverlayRenderer<{
     }
 };
 
+export const gridLabelsOverlay: OverlayRenderer<{
+    labels: Record<number, string>; // colIndex -> text
+    yOffset?: number;
+}> = {
+    render: ({ spec, scene }) => {
+        const grid = scene.grid;
+        if (!grid) return null;
+
+        const { w } = scene.viewBox; // Assume width is viewbox width
+        const { labels, yOffset = 20 } = spec.params;
+
+        const cellW = (w - (grid.padding.x * 2)) / grid.cols;
+
+        return (
+            <>
+                {Object.entries(labels).map(([colStr, text]) => {
+                    const col = parseInt(colStr, 10);
+                    // Center of the column
+                    const x = grid.padding.x + (col * cellW) + (cellW / 2);
+
+                    return (
+                        <text
+                            key={col}
+                            x={x}
+                            y={yOffset}
+                            className={spec.className || "viz-grid-label"}
+                            textAnchor="middle"
+                        >
+                            {text as string}
+                        </text>
+                    );
+                })}
+            </>
+        );
+    }
+};
+
 export const defaultOverlayRegistry = new OverlayRegistry()
-    .register("signal", signalOverlay);
+    .register("signal", signalOverlay)
+    .register("grid-labels", gridLabelsOverlay);

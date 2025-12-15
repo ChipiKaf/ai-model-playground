@@ -15,30 +15,6 @@ export interface VizCanvasProps {
 
 // Helper hook for smooth node transitions
 function useAnimatedNodes(targetNodes: VizNode[]) {
-    // Determine if we should animate. 
-    // Simplified: If ID exists in prev and pos changed -> animate.
-    // New nodes -> fade in (handled by CSS if we add enter class, but let's stick to pos first).
-    
-    // We store the *current display state* in ref/state? 
-    // Ideally we return the *interpolated* nodes for this frame.
-    
-    // For MVP, lets try a simpler approach:
-    // If we want edges to stay connected, JS interpolation is best.
-    // However, writing a full spring/tween loop here is complex.
-    
-    // Alternative: Use the "transform" strategy for Nodes, but for Edges...
-    // Edges are the hard part.
-    // Let's stick effectively to CSS 'transform' for nodes (Option B in Plan).
-    // And optimize edges later? Or use a trick?
-    // Trick: Render edges as children of the Node groups? No, graph is arbitrary.
-    
-    // Let's implement the 'flow' animation as requested first, and just use CSS transitions for Nodes.
-    // If edges detach, it's a known trade-off for this iteration unless we add the JS loop.
-    // User asked for "Check what email..." mid-stream, but previously "You're at a really good point...".
-    // User recommended Option A (Scene diffs).
-    
-    // LET'S DO SIMPLE JS INTERPOLATION using requestAnimationFrame.
-    
     const [displayNodes, setDisplayNodes] = React.useState(targetNodes);
     
     // Ref to track latest target
@@ -287,7 +263,8 @@ export function VizCanvas(props: VizCanvasProps) {
                         {renderer.render({ 
                             spec, 
                             nodesById: nodesById, // Use interpolated positions
-                            edgesById: edgesById 
+                            edgesById: edgesById,
+                            scene: scene,
                         })}
                     </React.Fragment>
                 );
