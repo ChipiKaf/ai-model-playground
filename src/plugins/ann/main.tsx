@@ -41,7 +41,6 @@ const NetworkVisualization: React.FC<NetworkVisualizationProps> = ({
   const scene = useMemo(() => {
     // Grid Configuration
     const cols = layerSizes.length;
-    console.log(`cols: ${cols}`)
     const rows = Math.max(...layerSizes);
     const b = viz().view(width, height).grid(cols, rows, { x: 50, y: 50 });
 
