@@ -13,7 +13,7 @@ export const useDecisionTreeAnimation = (onAnimationComplete?: () => void) => {
   // We rely on currentStep changing to trigger the next animation frame/logic
   const { currentStep } = useSelector((state: RootState) => state.simulation);
   
-  const { tree, dataPoints } = useSelector((state: RootState & StateWithDecisionTree) => state.decisionTree || initialState);
+  const { tree, dataPoints, rootId } = useSelector((state: RootState & StateWithDecisionTree) => state.decisionTree || initialState);
 
   // Keep callback fresh without triggering effect
   const onAnimationCompleteRef = useRef(onAnimationComplete);
@@ -48,6 +48,7 @@ export const useDecisionTreeAnimation = (onAnimationComplete?: () => void) => {
 
   return {
     tree,
-    dataPoints
+    dataPoints,
+    rootId
   };
 };
