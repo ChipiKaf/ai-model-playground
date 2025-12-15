@@ -73,7 +73,6 @@ const Shell: React.FC<ShellProps> = ({ plugin }) => {
           }}
           passCount={passCount}
           // Button is disabled if processing (waiting for anim)
-          // Button is disabled if processing (waiting for anim)
           isProcessing={isProcessing}
           nextButtonConfig={{
               text: steps[currentStep]?.nextButtonText,
