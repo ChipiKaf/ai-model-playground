@@ -24,6 +24,8 @@ const Shell: React.FC<ShellProps> = ({ plugin }) => {
   const modelState = useSelector(plugin.selector);
 
   React.useEffect(() => {
+     // Reset shared simulation state (step 0, pass 0)
+     dispatch(resetSimulation());
      // Initialize the plugin on mount
      plugin.init(dispatch);
   }, [dispatch, plugin]);

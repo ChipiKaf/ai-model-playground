@@ -14,8 +14,9 @@ const DecisionTreePlugin: ModelPlugin<DecisionTreeState, Action, LocalRootState,
   Component: DecisionTreeVisualization,
   getSteps: (_state: DecisionTreeState) => {
     return [
-        { label: 'Step 1', autoAdvance: false },
-        { label: 'Step 2', autoAdvance: false }
+        { label: 'Initialization', autoAdvance: false },
+        { label: 'Level 1 Decision', autoAdvance: false },
+        { label: 'Level 2 Decision', autoAdvance: true }
     ];
   },
   init: (dispatch) => {
