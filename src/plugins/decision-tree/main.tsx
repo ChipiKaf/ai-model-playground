@@ -57,10 +57,14 @@ const DecisionTreeVisualization: React.FC<DecisionTreeVisualizationProps> = ({
     // Padding ensures nodes aren't on the edge
     const b = viz().view(800, 600).grid(cols, rows, { x: 50, y: 50 });
 
+    // Determine active nodes (nodes containing unfinished data points)
+    const activeNodeIds = new Set(dataPoints.filter(p => !p.isFinished).map(p => p.currentNodeId));
+
     // 1. Build Nodes
     Object.values(tree).forEach((node: TreeNode) => {
         // Get calculated grid position
         const pos = layout[node.id] || { col: 0, row: 0 };
+        const isActive = activeNodeIds.has(node.id);
         
         const n = b.node(node.id).cell(pos.col, pos.row);
 
@@ -70,20 +74,34 @@ const DecisionTreeVisualization: React.FC<DecisionTreeVisualizationProps> = ({
              n.rect(80, 40, 5).class('internal');
         }
 
+        if (isActive) {
+            n.class('active');
+        }
+
         n.label(node.label, { className: 'node-label' });
     });
 
     // 2. Build Edges
     Object.values(tree).forEach((node: TreeNode) => {
         if (node.type === 'leaf') return;
+
+        const isActive = activeNodeIds.has(node.id);
         
         if (node.children?.left) {
-            b.edge(node.id, node.children.left)
+            const e = b.edge(node.id, node.children.left)
              .label('Yes', { position: 'mid', className: 'link-label' });
+            
+            if (isActive) {
+                e.animate('flow', { duration: '1s' });
+            }
         }
         if (node.children?.right) {
-            b.edge(node.id, node.children.right)
+            const e = b.edge(node.id, node.children.right)
              .label('No', { position: 'mid', className: 'link-label' });
+
+            if (isActive) {
+                e.animate('flow', { duration: '1s' });
+            }
         }
     });
 

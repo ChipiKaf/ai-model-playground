@@ -57,6 +57,14 @@
           stroke: #10b981; // Green
       }
 
+      // Active State
+      &.active .viz-node-shape {
+          stroke: #2563eb; // Stronger Blue
+          stroke-width: 3px;
+          filter: drop-shadow(0 0 10px rgba(37, 99, 235, 0.6));
+          fill: #eff6ff;
+      }
+
       &:hover {
           .viz-node-shape {
               stroke-width: 3;
