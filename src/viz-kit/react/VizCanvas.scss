@@ -11,3 +11,28 @@
     overflow: visible;
   }
 }
+
+// Keyframes
+@keyframes vizFlow {
+  from {
+    stroke-dashoffset: 20;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+// Animation Classes
+
+// Flow Animation (Dashed line moving)
+.viz-anim-flow {
+  .viz-edge {
+    stroke-dasharray: 5, 5;
+    animation: vizFlow var(--viz-anim-duration, 2s) linear infinite;
+  }
+}
+
+// Node Transition (if using CSS transforms in future, or for other props)
+.viz-node-group {
+    transition: transform 0.3s ease-out, opacity 0.3s ease-out;
+}

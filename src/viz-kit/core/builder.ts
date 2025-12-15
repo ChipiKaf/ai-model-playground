@@ -4,6 +4,7 @@ import type {
   VizEdge,
   NodeLabel,
   EdgeLabel,
+  AnimationConfig,
 } from "./types";
 
 interface VizBuilder {
@@ -32,6 +33,7 @@ interface NodeBuilder {
   diamond(w: number, h: number): NodeBuilder;
   label(text: string, opts?: Partial<NodeLabel>): NodeBuilder;
   class(name: string): NodeBuilder;
+  animate(type: string, config?: AnimationConfig): NodeBuilder;
   data(payload: unknown): NodeBuilder;
   onClick(handler: (id: string, node: VizNode) => void): NodeBuilder;
   done(): VizBuilder;
@@ -48,6 +50,7 @@ interface EdgeBuilder {
   arrow(enabled?: boolean): EdgeBuilder;
   class(name: string): EdgeBuilder;
   hitArea(px: number): EdgeBuilder;
+  animate(type: string, config?: AnimationConfig): EdgeBuilder;
   data(payload: unknown): EdgeBuilder;
   onClick(handler: (id: string, edge: VizEdge) => void): EdgeBuilder;
   done(): VizBuilder;
@@ -162,8 +165,6 @@ class NodeBuilderImpl implements NodeBuilder {
           x += cellW;
           y += cellH;
       }
-      // 'start' is default (top-left of cell), so no addition needed for that, 
-      // but typically 'cell' implies centering in that slot.
       
       this.nodeDef.pos = { x, y };
       return this;
@@ -196,6 +197,11 @@ class NodeBuilderImpl implements NodeBuilder {
         this.nodeDef.className = name;
     }
     return this;
+  }
+
+  animate(type: string, config?: AnimationConfig): NodeBuilder {
+      this.nodeDef.animation = { type, config };
+      return this;
   }
 
   data(payload: unknown): NodeBuilder {
@@ -255,6 +261,11 @@ class EdgeBuilderImpl implements EdgeBuilder {
           this.edgeDef.className = name;
       }
     return this;
+  }
+
+  animate(type: string, config?: AnimationConfig): EdgeBuilder {
+      this.edgeDef.animation = { type, config };
+      return this;
   }
 
   hitArea(px: number): EdgeBuilder {

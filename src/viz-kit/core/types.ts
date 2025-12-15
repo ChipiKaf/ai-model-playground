@@ -12,35 +12,49 @@ export type NodeLabel = {
   className?: string;
 };
 
-export type VizNode = {
+export type AnimationDuration = `${number}s`;
+
+export interface AnimationConfig {
+  duration?: AnimationDuration;
+  [key: string]: any;
+}
+
+export interface VizAnimation {
+  type: string;
+  config?: AnimationConfig;
+}
+
+export interface VizNode {
   id: string;
   pos: Vec2;
   shape: NodeShape;
-  className?: string;
   label?: NodeLabel;
-  data?: unknown;
-  onClick?: (nodeId: string, node: VizNode) => void;
-};
+  className?: string; // e.g. "active", "input-layer"
+  data?: unknown; // User payload
+  onClick?: (id: string, node: VizNode) => void;
+  animation?: VizAnimation;
+}
 
-export type EdgeLabel = {
+export interface EdgeLabel {
   text: string;
-  position?: "mid"; // MVP only
+  position: "start" | "mid" | "end"; // Simplified for now
+  className?: string;
   dx?: number;
   dy?: number;
-  className?: string;
-};
+}
 
-export type VizEdge = {
+export interface VizEdge {
   id: string;
   from: string;
   to: string;
-  className?: string;
   label?: EdgeLabel;
   markerEnd?: "arrow" | "none";
-  hitArea?: number; // px stroke width for transparent hit line
+  className?: string;
+  hitArea?: number; // width in px
   data?: unknown;
-  onClick?: (edgeId: string, edge: VizEdge) => void;
-};
+  onClick?: (id: string, edge: VizEdge) => void;
+  animation?: VizAnimation;
+}
 
 export type VizOverlay = {
   kind: "custom"; // placeholder for now

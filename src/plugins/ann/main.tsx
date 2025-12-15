@@ -109,17 +109,15 @@ const NetworkVisualization: React.FC<NetworkVisualizationProps> = ({
 
     // Connections
     connections.forEach((conn) => {
-        let edgeClass = 'connection';
-        // Check "idle flow" condition: active layer matches source, source output > 0, weight > 0
-        // We add a class if this condition is met.
-        if (activeLayer === conn.sourceLayer && neuronValues[`${conn.sourceLayer}-${conn.sourceIndex}`]?.sum > 0 && conn.weight > 0) {
-            edgeClass += ' idle-flow';
-        }
-
-        b.edge(`${conn.sourceLayer}-${conn.sourceIndex}`, `${conn.sourceLayer + 1}-${conn.targetIndex}`, conn.id)
+        const bEdge = b.edge(`${conn.sourceLayer}-${conn.sourceIndex}`, `${conn.sourceLayer + 1}-${conn.targetIndex}`, conn.id)
          .label(conn.weight.toFixed(2), { className: 'weight-label' })
-         .class(edgeClass)
+         .class('connection')
          .hitArea(10); // Standard hit area width
+
+        // Check "flow" condition: active layer matches source, source output > 0, weight > 0
+        if (activeLayer === conn.sourceLayer && neuronValues[`${conn.sourceLayer}-${conn.sourceIndex}`]?.sum > 0 && conn.weight > 0) {
+            bEdge.animate('flow', { duration: '2s' });
+        }
     });
 
     return b.build();
