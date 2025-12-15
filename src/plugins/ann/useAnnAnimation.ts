@@ -75,8 +75,12 @@ export const useAnnAnimation = (onAnimationComplete?: () => void) => {
 
       setActiveLayer(0);
       setSignals([]);
+      
+      // Step 0 is instant, so complete immediately
+      setTimeout(() => onAnimationComplete?.(), 0);
+
     } else if (currentStep % 2 === 0) {
-      // Layer Activation
+      // ... (Activation) ...
       const layerIndex = currentStep / 2;
       setActiveLayer(layerIndex);
       setSignals([]);
@@ -130,6 +134,7 @@ export const useAnnAnimation = (onAnimationComplete?: () => void) => {
         });
         dispatch(updateNeuronValues(activatedValues));
         timeoutRef.current = undefined;
+        onAnimationComplete?.();
       }, 1000);
 
     } else {

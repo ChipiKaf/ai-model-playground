@@ -1,4 +1,4 @@
-import type { ModelPlugin } from '../../types/ModelPlugin';
+import type { ModelPlugin, ModelStep } from '../../types/ModelPlugin';
 import annReducer, { initializeNetwork, type NetworkState, initialState } from './annSlice';
 import AnnVisualization from './main';
 import { type RootState } from '../../store/store';
@@ -13,10 +13,12 @@ const AnnPlugin: ModelPlugin<NetworkState> = {
   getSteps: (state: NetworkState) => {
     // state is the NetworkState
     const { layerSizes } = state;
-    const s = ['Input Layer Initialization'];
+    const s: ModelStep[] = [{ label: 'Input Layer Initialization', autoAdvance: false }];
     for (let i = 0; i < layerSizes.length - 1; i++) {
-        s.push(`Layer ${i + 1} Activation`);
-        s.push(`Signal Transmission to Layer ${i + 2}`);
+        // Transmission (Signal flow)
+        s.push({ label: `Signal Transmission to Layer ${i + 1}`, autoAdvance: true });
+        // Activation (Node processing)
+        s.push({ label: `Layer ${i + 1} Activation`, autoAdvance: i === 2 });
     }
     return s;
   },
