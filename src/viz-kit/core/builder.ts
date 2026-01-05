@@ -8,6 +8,9 @@ import type {
   VizOverlaySpec,
   VizGridConfig,
 } from "./types";
+import { DEFAULT_VIZ_CSS } from "./styles";
+import { defaultRegistry } from "./animations";
+import { defaultCoreOverlayRegistry } from "./overlays";
 
 interface VizBuilder {
   view(w: number, h: number): VizBuilder;
@@ -20,8 +23,8 @@ interface VizBuilder {
   // Internal helper for NodeBuilder to access grid config
   _getGridConfig(): VizGridConfig | null;
   _getViewBox(): { w: number; h: number };
+  svg(): string;
 }
-// Removed local GridConfig interface
 
 interface NodeBuilder {
   at(x: number, y: number): NodeBuilder;
@@ -39,7 +42,9 @@ interface NodeBuilder {
   // Seamless chaining extensions
   node(id: string): NodeBuilder;
   edge(from: string, to: string, id?: string): EdgeBuilder;
+  overlay<T>(id: string, params: T, key?: string): VizBuilder;
   build(): VizScene;
+  svg(): string;
 }
 
 interface EdgeBuilder {
@@ -56,7 +61,9 @@ interface EdgeBuilder {
   // Seamless chaining extensions
   node(id: string): NodeBuilder;
   edge(from: string, to: string, id?: string): EdgeBuilder;
+  overlay<T>(id: string, params: T, key?: string): VizBuilder;
   build(): VizScene;
+  svg(): string;
 }
 
 class VizBuilderImpl implements VizBuilder {
@@ -129,6 +136,144 @@ class VizBuilderImpl implements VizBuilder {
 
   _getViewBox() {
       return this._viewBox;
+  }
+  
+  svg(): string {
+      const scene = this.build();
+      return this._renderSceneToSvg(scene);
+  }
+
+  private _renderSceneToSvg(scene: VizScene): string {
+      const { viewBox, nodes, edges, overlays } = scene;
+      const nodesById = new Map(nodes.map(n => [n.id, n]));
+      const edgesById = new Map(edges.map(e => [e.id, e]));
+
+      let svgContent = `<svg viewBox="0 0 ${viewBox.w} ${viewBox.h}" xmlns="http://www.w3.org/2000/svg">`;
+      
+      // Inject Styles
+      svgContent += `<style>${DEFAULT_VIZ_CSS}</style>`;
+
+      // Defs (Arrow Marker)
+      svgContent += `
+        <defs>
+          <marker id="viz-arrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" fill="currentColor" />
+          </marker>
+        </defs>`;
+
+      // Render Edges
+      svgContent += `<g class="viz-layer-edges">`;
+      edges.forEach(edge => {
+          const start = nodesById.get(edge.from);
+          const end = nodesById.get(edge.to);
+          if (!start || !end) return;
+
+          // Animations
+          let animClasses = "";
+          let animStyleStr = "";
+
+          if (edge.animations) {
+              edge.animations.forEach(spec => {
+                  const renderer = defaultRegistry.getEdgeRenderer(spec.id);
+                  if (renderer) {
+                      if (renderer.getClass) {
+                          animClasses += ` ${renderer.getClass({ spec, element: edge })}`;
+                      }
+                      if (renderer.getStyle) {
+                          const styles = renderer.getStyle({ spec, element: edge });
+                          Object.entries(styles).forEach(([k, v]) => {
+                              animStyleStr += `${k}: ${v}; `;
+                          });
+                      }
+                  }
+              });
+          }
+
+          const markerEnd = edge.markerEnd === "arrow" ? 'marker-end="url(#viz-arrow)"' : '';
+          
+          svgContent += `<g class="viz-edge-group ${edge.className || ''} ${animClasses}" style="${animStyleStr}">`;
+          svgContent += `<line x1="${start.pos.x}" y1="${start.pos.y}" x2="${end.pos.x}" y2="${end.pos.y}" class="viz-edge" ${markerEnd} stroke="currentColor" />`;
+
+          // Edge Label
+          if (edge.label) {
+             const mx = (start.pos.x + end.pos.x) / 2 + (edge.label.dx || 0);
+             const my = (start.pos.y + end.pos.y) / 2 + (edge.label.dy || 0);
+             const labelClass = `viz-edge-label ${edge.label.className || ''}`;
+             svgContent += `<text x="${mx}" y="${my}" class="${labelClass}" text-anchor="middle" dominant-baseline="middle">${edge.label.text}</text>`;
+          }
+           svgContent += `</g>`;
+      });
+      svgContent += `</g>`;
+
+      // Render Nodes
+      svgContent += `<g class="viz-layer-nodes">`;
+      nodes.forEach(node => {
+          const { x, y } = node.pos;
+          const { shape } = node;
+          
+          // Animations (Nodes)
+          let animClasses = "";
+           let animStyleStr = "";
+
+          if (node.animations) {
+              node.animations.forEach(spec => {
+                  const renderer = defaultRegistry.getNodeRenderer(spec.id);
+                   if (renderer) {
+                      if (renderer.getClass) {
+                          animClasses += ` ${renderer.getClass({ spec, element: node })}`;
+                      }
+                      if (renderer.getStyle) {
+                          const styles = renderer.getStyle({ spec, element: node });
+                          Object.entries(styles).forEach(([k, v]) => {
+                              animStyleStr += `${k}: ${v}; `;
+                          });
+                      }
+                  }
+              });
+          }
+
+          const className = `viz-node-group ${node.className || ''} ${animClasses}`;
+          
+          svgContent += `<g class="${className}" style="${animStyleStr}">`;
+          
+          // Shape
+          if (shape.kind === 'circle') {
+             svgContent += `<circle cx="${x}" cy="${y}" r="${shape.r}" class="viz-node-shape" />`;
+          } else if (shape.kind === 'rect') {
+             svgContent += `<rect x="${x - shape.w/2}" y="${y - shape.h/2}" width="${shape.w}" height="${shape.h}" rx="${shape.rx || 0}" class="viz-node-shape" />`;
+          } else if (shape.kind === 'diamond') {
+             const hw = shape.w / 2;
+             const hh = shape.h / 2;
+             const pts = `${x},${y-hh} ${x+hw},${y} ${x},${y+hh} ${x-hw},${y}`;
+             svgContent += `<polygon points="${pts}" class="viz-node-shape" />`;
+          }
+          
+          // Label
+          if (node.label) {
+             const lx = x + (node.label.dx || 0);
+             const ly = y + (node.label.dy || 0);
+             const labelClass = `viz-node-label ${node.label.className || ''}`;
+             svgContent += `<text x="${lx}" y="${ly}" class="${labelClass}" text-anchor="middle" dominant-baseline="middle">${node.label.text}</text>`;
+          }
+          
+          svgContent += `</g>`;
+      });
+      svgContent += `</g>`;
+
+      // Render Overlays
+      if (overlays && overlays.length > 0) {
+          svgContent += `<g class="viz-layer-overlays">`;
+          overlays.forEach(spec => {
+              const renderer = defaultCoreOverlayRegistry.get(spec.id);
+              if (renderer) {
+                  svgContent += renderer.render({ spec, nodesById, edgesById, scene });
+              }
+          });
+          svgContent += `</g>`;
+      }
+
+      svgContent += `</svg>`;
+      return svgContent;
   }
 }
 
@@ -234,8 +379,14 @@ class NodeBuilderImpl implements NodeBuilder {
   edge(from: string, to: string, id?: string): EdgeBuilder {
     return this.parent.edge(from, to, id);
   }
+  overlay<T>(id: string, params: T, key?: string): VizBuilder {
+    return this.parent.overlay(id, params, key);
+  }
   build(): VizScene {
     return this.parent.build();
+  }
+  svg(): string {
+     return this.parent.svg();
   }
 }
 
@@ -306,8 +457,14 @@ class EdgeBuilderImpl implements EdgeBuilder {
   edge(from: string, to: string, id?: string): EdgeBuilder {
     return this.parent.edge(from, to, id);
   }
+  overlay<T>(id: string, params: T, key?: string): VizBuilder {
+      return this.parent.overlay(id, params, key);
+  }
   build(): VizScene {
     return this.parent.build();
+  }
+  svg(): string {
+     return this.parent.svg();
   }
 }
 
