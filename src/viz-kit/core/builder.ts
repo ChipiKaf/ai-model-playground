@@ -24,6 +24,7 @@ interface VizBuilder {
   _getGridConfig(): VizGridConfig | null;
   _getViewBox(): { w: number; h: number };
   svg(): string;
+  mount(container: HTMLElement): void;
 }
 
 interface NodeBuilder {
@@ -141,6 +142,233 @@ class VizBuilderImpl implements VizBuilder {
   svg(): string {
       const scene = this.build();
       return this._renderSceneToSvg(scene);
+  }
+
+  mount(container: HTMLElement) {
+      const scene = this.build();
+      this._renderSceneToDOM(scene, container);
+  }
+
+  private _renderSceneToDOM(scene: VizScene, container: HTMLElement) {
+      const { viewBox, nodes, edges, overlays } = scene;
+      const nodesById = new Map(nodes.map(n => [n.id, n]));
+      const edgesById = new Map(edges.map(e => [e.id, e]));
+
+      // Clear Container
+      container.innerHTML = '';
+
+      const svgNS = "http://www.w3.org/2000/svg";
+      const svg = document.createElementNS(svgNS, "svg");
+      svg.setAttribute("viewBox", `0 0 ${viewBox.w} ${viewBox.h}`);
+      svg.style.width = "100%";
+      svg.style.height = "100%";
+      svg.style.overflow = "visible";
+
+      // Inject Styles
+      const style = document.createElement("style");
+      style.textContent = DEFAULT_VIZ_CSS;
+      svg.appendChild(style);
+
+      // Defs
+      const defs = document.createElementNS(svgNS, "defs");
+      const marker = document.createElementNS(svgNS, "marker");
+      marker.setAttribute("id", "viz-arrow");
+      marker.setAttribute("markerWidth", "10");
+      marker.setAttribute("markerHeight", "7");
+      marker.setAttribute("refX", "9");
+      marker.setAttribute("refY", "3.5");
+      marker.setAttribute("orient", "auto");
+      const poly = document.createElementNS(svgNS, "polygon");
+      poly.setAttribute("points", "0 0, 10 3.5, 0 7");
+      poly.setAttribute("fill", "currentColor");
+      marker.appendChild(poly);
+      defs.appendChild(marker);
+      svg.appendChild(defs);
+
+      // Edges Layer
+      const edgeLayer = document.createElementNS(svgNS, "g");
+      edgeLayer.setAttribute("class", "viz-layer-edges");
+      edges.forEach(edge => {
+          const start = nodesById.get(edge.from);
+          const end = nodesById.get(edge.to);
+          if (!start || !end) return;
+
+          const group = document.createElementNS(svgNS, "g");
+          let classes = `viz-edge-group ${edge.className || ''}`;
+          
+          // Animations
+          if (edge.animations) {
+              edge.animations.forEach(spec => {
+                  const renderer = defaultRegistry.getEdgeRenderer(spec.id);
+                  if (renderer) {
+                      if (renderer.getClass) classes += ` ${renderer.getClass({ spec, element: edge })}`;
+                      if (renderer.getStyle) {
+                           const s = renderer.getStyle({ spec, element: edge });
+                           Object.entries(s).forEach(([k, v]) => {
+                               group.style.setProperty(k, String(v));
+                           });
+                      }
+                  }
+              });
+          }
+          group.setAttribute("class", classes);
+
+          // Line
+          const line = document.createElementNS(svgNS, "line");
+          line.setAttribute("x1", String(start.pos.x));
+          line.setAttribute("y1", String(start.pos.y));
+          line.setAttribute("x2", String(end.pos.x));
+          line.setAttribute("y2", String(end.pos.y));
+          line.setAttribute("class", "viz-edge");
+          line.setAttribute("stroke", "currentColor");
+          if (edge.markerEnd === "arrow") {
+              line.setAttribute("marker-end", "url(#viz-arrow)");
+          }
+          group.appendChild(line);
+
+          // Hit Area
+           if (edge.hitArea || edge.onClick) {
+               const hit = document.createElementNS(svgNS, "line");
+               hit.setAttribute("x1", String(start.pos.x));
+               hit.setAttribute("y1", String(start.pos.y));
+               hit.setAttribute("x2", String(end.pos.x));
+               hit.setAttribute("y2", String(end.pos.y));
+               hit.setAttribute("stroke", "transparent");
+               hit.setAttribute("stroke-width", String(edge.hitArea || 10));
+               hit.style.cursor = edge.onClick ? "pointer" : "";
+               if (edge.onClick) {
+                   hit.addEventListener("click", (e) => {
+                        e.stopPropagation();
+                        edge.onClick!(edge.id, edge);
+                   });
+               }
+               group.appendChild(hit);
+           }
+
+          // Label
+          if (edge.label) {
+              const text = document.createElementNS(svgNS, "text");
+              const mx = (start.pos.x + end.pos.x) / 2 + (edge.label.dx || 0);
+              const my = (start.pos.y + end.pos.y) / 2 + (edge.label.dy || 0);
+              text.setAttribute("x", String(mx));
+              text.setAttribute("y", String(my));
+              text.setAttribute("class", `viz-edge-label ${edge.label.className || ''}`);
+              text.setAttribute("text-anchor", "middle");
+              text.setAttribute("dominant-baseline", "middle");
+              text.textContent = edge.label.text;
+              group.appendChild(text);
+          }
+
+          if (edge.onClick) {
+          }
+
+          edgeLayer.appendChild(group);
+      });
+      svg.appendChild(edgeLayer);
+
+      // Nodes Layer
+      const nodeLayer = document.createElementNS(svgNS, "g");
+      nodeLayer.setAttribute("class", "viz-layer-nodes");
+      nodes.forEach(node => {
+           const group = document.createElementNS(svgNS, "g");
+           let classes = `viz-node-group ${node.className || ''}`;
+
+           // Animations
+           if (node.animations) {
+              node.animations.forEach(spec => {
+                  const renderer = defaultRegistry.getNodeRenderer(spec.id);
+                  if (renderer) {
+                      if (renderer.getClass) classes += ` ${renderer.getClass({ spec, element: node })}`;
+                      if (renderer.getStyle) {
+                           const s = renderer.getStyle({ spec, element: node });
+                           Object.entries(s).forEach(([k, v]) => {
+                               group.style.setProperty(k, String(v));
+                           });
+                      }
+                  }
+              });
+           }
+           group.setAttribute("class", classes);
+           
+           if (node.onClick) {
+               group.style.cursor = "pointer";
+               group.addEventListener("click", (e) => {
+                   e.stopPropagation();
+                   node.onClick!(node.id, node);
+               });
+           }
+
+           // Shape
+           let shape: SVGElement | null = null;
+           const { x, y } = node.pos;
+           
+           if (node.shape.kind === "circle") {
+               const el = document.createElementNS(svgNS, "circle");
+               el.setAttribute("cx", String(x));
+               el.setAttribute("cy", String(y));
+               el.setAttribute("r", String(node.shape.r));
+               shape = el;
+           } else if (node.shape.kind === "rect") {
+               const el = document.createElementNS(svgNS, "rect");
+               el.setAttribute("x", String(x - node.shape.w/2));
+               el.setAttribute("y", String(y - node.shape.h/2));
+               el.setAttribute("width", String(node.shape.w));
+               el.setAttribute("height", String(node.shape.h));
+               if (node.shape.rx) el.setAttribute("rx", String(node.shape.rx));
+               shape = el;
+           } else if (node.shape.kind === "diamond") {
+               const el = document.createElementNS(svgNS, "polygon");
+               const hw = node.shape.w / 2;
+               const hh = node.shape.h / 2;
+               const pts = `${x},${y-hh} ${x+hw},${y} ${x},${y+hh} ${x-hw},${y}`;
+               el.setAttribute("points", pts);
+               shape = el;
+           }
+           
+           if (shape) {
+               shape.setAttribute("class", "viz-node-shape");
+               group.appendChild(shape);
+           }
+
+           // Label
+           if (node.label) {
+               const text = document.createElementNS(svgNS, "text");
+               const lx = x + (node.label.dx || 0);
+               const ly = y + (node.label.dy || 0);
+               text.setAttribute("x", String(lx));
+               text.setAttribute("y", String(ly));
+               text.setAttribute("class", `viz-node-label ${node.label.className || ''}`);
+               text.setAttribute("text-anchor", "middle");
+               text.setAttribute("dominant-baseline", "middle");
+               text.textContent = node.label.text;
+               group.appendChild(text);
+           }
+           
+           nodeLayer.appendChild(group);
+      });
+      svg.appendChild(nodeLayer);
+
+      // Overlays
+      if (overlays && overlays.length > 0) {
+          const overlayLayer = document.createElementNS(svgNS, "g");
+          overlayLayer.setAttribute("class", "viz-layer-overlays");
+          overlays.forEach(spec => {
+              const renderer = defaultCoreOverlayRegistry.get(spec.id);
+              if (renderer) {
+                  const html = renderer.render({ spec, nodesById, edgesById, scene });
+                  // Helper to parse string to DOM nodes
+                  // Since overlays return strings (template literals), we need to parse them.
+                  const temp = document.createElementNS(svgNS, "g");
+                  temp.innerHTML = html;
+                  while (temp.firstChild) {
+                      overlayLayer.appendChild(temp.firstChild);
+                  }
+              }
+          });
+          svg.appendChild(overlayLayer);
+      }
+
+      container.appendChild(svg);
   }
 
   private _renderSceneToSvg(scene: VizScene): string {
