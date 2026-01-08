@@ -11,10 +11,6 @@ import {
 
 export interface Signal {
   id: string;
-  x: number;
-  y: number;
-  targetX: number;
-  targetY: number;
   progress: number; // 0 to 1
   weight?: number;
   sourceLayer: number;
@@ -167,10 +163,6 @@ export const useAnnAnimation = (onAnimationComplete?: () => void) => {
 
         newSignals.push({
           id: `sig-${conn.id}-${Date.now()}`,
-          x: conn.x1,
-          y: conn.y1,
-          targetX: conn.x2,
-          targetY: conn.y2,
           progress: 0,
           weight: conn.weight,
           sourceLayer: conn.sourceLayer,
