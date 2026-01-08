@@ -274,15 +274,6 @@ class VizBuilderImpl implements VizBuilder {
               line.removeAttribute("marker-end");
           }
 
-          // Hit Area (Recreate or Update - easier to recreate if present given complex listeners)
-          // For simplicity/perf in this diff, we can check if it exists
-          // NOTE: Event listeners are tricky in reconciliation. 
-          // Ideally we replace the node to update listeners or use a delegated listener.
-          // Since we are doing a "poor man's diff", let's handle the hit area by removing and adding if needed,
-          // OR assume listeners don't change frequently. 
-          // BUT, `edge.onClick` is a closure. If it changes, we need to update.
-          // Safe bet: Remove old hit area, add new one if needed.
-          
           const oldHit = group.querySelector(".viz-edge-hit");
           if (oldHit) oldHit.remove();
           
@@ -373,17 +364,6 @@ class VizBuilderImpl implements VizBuilder {
            }
            group.setAttribute("class", classes);
 
-           // OnClick - Similar to edges, easiest is to overwrite the handler or rely on the group
-           // To be safe with closures, we can't easily removeEventListener.
-           // A cleaner way is to clone the node to strip listeners, but that breaks transitions (DOM replacement).
-           // Better: Attach listener to group once? No, because handler changes.
-           // Workaround: Store the handler on the DOM element property? 
-           // Or just leave it? If we add another listener, we get multiple.
-           // FIX: We need a stable event mechanism. 
-           // For now, let's remove the old 'click' listener. But we can't without reference.
-           // OPTION A: Re-create the group if onClick changes? No.
-           // OPTION B: Use a single listener that calls `element._clickHandler`.
-           
            // @ts-ignore
            group._clickHandler = node.onClick ? (e) => { e.stopPropagation(); node.onClick!(node.id, node); } : null;
            
