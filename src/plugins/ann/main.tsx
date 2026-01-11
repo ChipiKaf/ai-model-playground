@@ -4,7 +4,7 @@ import { useDispatch } from 'react-redux';
 import './main.scss';
 import { selectNeuron } from '../../store/slices/simulationSlice';
 import { useAnnAnimation } from './useAnnAnimation';
-import { viz, VizCanvas } from '../../viz-kit';
+import { viz } from '../../viz-kit';
 import { useMemo } from 'react';
 
 interface NetworkVisualizationProps {
@@ -153,12 +153,20 @@ const NetworkVisualization: React.FC<NetworkVisualizationProps> = ({
         yOffset: 20,
     });
 
-    return b.build();
+    return b;
   }, [neurons, connections, neuronValues, activeLayer, dispatch, width, height, layerSizes, signals]);
+
+  React.useLayoutEffect(() => {
+    if (containerRef.current) {
+      scene.mount(containerRef.current);
+    }
+  }, [scene]);
+
+  const containerRef = React.useRef<HTMLDivElement>(null);
 
   return (
     <div className="network-visualization">
-      <VizCanvas scene={scene} className="ann-viz" />
+       <div ref={containerRef} className="ann-viz" style={{ width: 800, height: 600 }}></div>
     </div>
   );
 };

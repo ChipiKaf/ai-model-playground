@@ -1,9 +1,8 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useLayoutEffect, useRef } from 'react';
 import './main.scss';
 import { useDecisionTreeAnimation } from './useDecisionTreeAnimation';
 import { type TreeNode } from './decisionTreeSlice';
 import { viz } from '../../viz-kit/core/builder';
-import { VizCanvas } from '../../viz-kit/react/VizCanvas';
 
 interface DecisionTreeVisualizationProps {
   onAnimationComplete?: () => void;
@@ -49,12 +48,10 @@ const DecisionTreeVisualization: React.FC<DecisionTreeVisualizationProps> = ({
 
   // Re-calculate layout if tree changes
   const { layout, cols, rows } = useMemo(() => calculateTreeLayout(tree, rootId), [tree, rootId]);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const scene = useMemo(() => {
     // Configure Grid:
-    // Columns = Number of Leaves (width)
-    // Rows = Depth + 1 (height)
-    // Padding ensures nodes aren't on the edge
     const b = viz().view(800, 600).grid(cols, rows, { x: 50, y: 50 });
 
     // Determine active nodes (nodes containing unfinished data points)
@@ -108,12 +105,18 @@ const DecisionTreeVisualization: React.FC<DecisionTreeVisualizationProps> = ({
     // 3. Add Data Points Overlay
     b.overlay('data-points', { points: dataPoints });
 
-    return b.build();
+    return b;
   }, [tree, dataPoints, layout, cols, rows]);
+
+  useLayoutEffect(() => {
+    if (containerRef.current) {
+        scene.mount(containerRef.current);
+    }
+  }, [scene]);
 
   return (
     <div className="decision-tree-visualization-container">
-       <VizCanvas scene={scene} className="decision-tree-visualization" />
+       <div ref={containerRef} className="decision-tree-visualization" style={{ width: 800, height: 600 }}></div>
        <div className="controls-overlay">
          {/* Controls placeholder */}
        </div>

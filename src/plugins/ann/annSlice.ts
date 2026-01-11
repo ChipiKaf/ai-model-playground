@@ -1,10 +1,9 @@
 import { createSlice, createEntityAdapter, type PayloadAction, type EntityState } from '@reduxjs/toolkit';
 import type { RootState } from '../../store/store';
+import { deterministicRandom } from '../../utils/random';
 
 export interface NeuronPosition {
   id: string; // `${layerIndex}-${neuronIndex}`
-  x: number;
-  y: number;
   layerIndex: number;
   neuronIndex: number;
   bias: number;
@@ -12,10 +11,6 @@ export interface NeuronPosition {
 
 export interface Connection {
   id: string; // `${sourceLayer}-${sourceIndex}-to-${targetLayer}-${targetIndex}` (was key)
-  x1: number;
-  y1: number;
-  x2: number;
-  y2: number;
   sourceLayer: number;
   sourceIndex: number;
   targetIndex: number;
@@ -54,24 +49,12 @@ const networkSlice = createSlice({
       state.layerSizes = action.payload;
     },
     initializeNetwork(state) {
-      const width = 800;
-      const height = 600;
-      const paddingX = 100;
-      const paddingY = 50;
-      
       const positions: NeuronPosition[] = [];
-      const layerSpacing = (width - 2 * paddingX) / (state.layerSizes.length - 1);
-
       state.layerSizes.forEach((size, layerIndex) => {
-        const x = paddingX + layerIndex * layerSpacing;
-        const layerHeight = height - 2 * paddingY;
-        const neuronSpacing = layerHeight / (size + 1);
 
         for (let i = 0; i < size; i++) {
           positions.push({
             id: `${layerIndex}-${i}`,
-            x,
-            y: paddingY + (i + 1) * neuronSpacing,
             layerIndex,
             neuronIndex: i,
             bias: Math.random() * 0.4 - 0.2,
@@ -89,8 +72,7 @@ const networkSlice = createSlice({
         currentLayerNeurons.forEach((source) => {
           nextLayerNeurons.forEach((target) => {
             const seed = l * 1000 + source.neuronIndex * 100 + target.neuronIndex;
-            const raw = Math.sin(seed) * 43758.5453123;
-            const pseudoRandom = raw - Math.floor(raw);
+            const pseudoRandom = deterministicRandom(seed);
             const base = pseudoRandom * 2 - 1;
             const bias = 0.25;
             let signedWeight = base + bias;
@@ -98,10 +80,6 @@ const networkSlice = createSlice({
 
             lines.push({
               id: `l${l}-n${source.neuronIndex}-to-l${l + 1}-n${target.neuronIndex}`,
-              x1: source.x,
-              y1: source.y,
-              x2: target.x,
-              y2: target.y,
               sourceLayer: l,
               sourceIndex: source.neuronIndex,
               targetIndex: target.neuronIndex,

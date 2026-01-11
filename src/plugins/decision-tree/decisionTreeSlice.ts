@@ -35,10 +35,6 @@ export interface DecisionTreeState {
   speed: number;
 }
 
-// A simple mock tree (XOR-like problem or simple classification)
-// Root: x > 0.5?
-// Left: y > 0.5? -> A / B
-// Right: y > 0.5? -> B / A
 const initialTree: Record<string, TreeNode> = {
   'root': {
     id: 'root',
@@ -81,12 +77,7 @@ const initialTree: Record<string, TreeNode> = {
     prediction: 'B',
     x: 300, y: 400
   },
-  'leaf3': { // x > 0.5, y <= 0.5 (Wait, logic check: if x > 0.5 is FALSE, it goes left. So left child matches condition FALSE)
-             // Standard Convention: Left = True, Right = False OR Left = <, Right = >=.
-             // Let's stick to: Left = Condition True ( < Threshold in many libs, or just "Yes"), Right = "No"
-             // Let's define: Left child is when condition is TRUE? Or False?
-             // Usually: Condition: x < 0.5. True -> Left.
-             // Let's explicitly define in logic: if (val < threshold) go left else right.
+  'leaf3': { 
     id: 'leaf3',
     type: 'leaf',
     label: 'Class B',
@@ -151,22 +142,13 @@ const decisionTreeSlice = createSlice({
         }
 
         // Evaluate condition
-        // Convention: Left = value < threshold (True), Right = value >= threshold (False)
-        // Let's fix our logic: feature < threshold ? left : right
         const val = point.features[node.feature!];
         const threshold = node.threshold!;
         
         let nextNodeId: string;
-        // Logic: Is Condition True? -> Left. Condition False -> Right.
-        // Label says "x > 0.5?". if 0.8 > 0.5 (True) -> Left?
-        // Let's assume Left = True branch, Right = False branch.
-        
-        // Let's look at our labels.
-        // Root: x > 0.5? 
-        // If x=0.8, 0.8 > 0.5 is True. Logic should go to "True" child.
-        // Let's assume 'left' is True branch.
         const conditionMet = val > threshold; 
 
+        // Determine direction based on condition, True -> Left, False -> Right
         if (conditionMet) {
            nextNodeId = node.children!.left;
         } else {
@@ -177,7 +159,6 @@ const decisionTreeSlice = createSlice({
           point.currentNodeId = nextNodeId;
           point.history.push(nextNodeId);
           // If new node is leaf, mark finished next tick? Or now?
-          // Let's mark finished only after it sits in the leaf for 1 tick, or just let UI show it.
           if (state.tree[nextNodeId].type === 'leaf') {
             point.isFinished = true;
           }
