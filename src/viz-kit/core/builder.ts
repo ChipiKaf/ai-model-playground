@@ -76,21 +76,46 @@ class VizBuilderImpl implements VizBuilder {
   private _edgeOrder: string[] = [];
   private _gridConfig: VizGridConfig | null = null;
 
+  /**
+   * Sets the view box.
+   * @param w The width of the view box
+   * @param h The height of the view box
+   * @returns The builder
+   */
   view(w: number, h: number): VizBuilder {
     this._viewBox = { w, h };
     return this;
   }
 
+  /**
+   * Sets the grid configuration.
+   * @param cols The number of columns
+   * @param rows The number of rows
+   * @param padding The padding of the grid
+   * @returns The builder
+   */
   grid(cols: number, rows: number, padding: { x: number; y: number } = { x: 20, y: 20 }): VizBuilder {
       this._gridConfig = { cols, rows, padding };
       return this;
   }
 
+  /**
+   * Adds an overlay to the scene.
+   * @param id The ID of the overlay
+   * @param params The parameters of the overlay
+   * @param key The key of the overlay
+   * @returns The builder
+   */
   overlay<T>(id: string, params: T, key?: string): VizBuilder {
       this._overlays.push({ id, params, key });
       return this;
   }
 
+  /**
+   * Creates a node.
+   * @param id The ID of the node
+   * @returns The node builder
+   */
   node(id: string): NodeBuilder {
     if (!this._nodes.has(id)) {
       // Set default position and shape
@@ -100,6 +125,13 @@ class VizBuilderImpl implements VizBuilder {
     return new NodeBuilderImpl(this, this._nodes.get(id)!); // The ! asserts that the node exists, because we just added it
   }
 
+  /**
+   * Creates an edge between two nodes.
+   * @param from The source node
+   * @param to The target node
+   * @param id The ID of the edge
+   * @returns The edge builder
+   */
   edge(from: string, to: string, id?: string): EdgeBuilder {
     const edgeId = id || `${from}->${to}`;
     if (!this._edges.has(edgeId)) {
@@ -109,6 +141,10 @@ class VizBuilderImpl implements VizBuilder {
     return new EdgeBuilderImpl(this, this._edges.get(edgeId)!);
   }
 
+  /**
+   * Builds the scene.
+   * @returns The scene
+   */
   build(): VizScene {
     this._edges.forEach((edge) => {
       if (!this._nodes.has(edge.from!)) {
@@ -148,11 +184,20 @@ class VizBuilderImpl implements VizBuilder {
       return this._renderSceneToSvg(scene);
   }
 
+  /**
+   * Mounts the scene to the DOM.
+   * @param container The container to mount the scene into
+   */
   mount(container: HTMLElement) {
       const scene = this.build();
       this._renderSceneToDOM(scene, container);
   }
 
+  /**
+   * Renders the scene to the DOM.
+   * @param scene The scene to render
+   * @param container The container to render the scene into
+   */
   private _renderSceneToDOM(scene: VizScene, container: HTMLElement) {
       const { viewBox, nodes, edges, overlays } = scene;
       const nodesById = new Map(nodes.map(n => [n.id, n]));

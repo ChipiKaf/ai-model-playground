@@ -104,7 +104,6 @@ const DecisionTreeVisualization: React.FC<DecisionTreeVisualizationProps> = ({
 
     // 3. Add Data Points Overlay
     b.overlay('data-points', { points: dataPoints });
-    console.log("Running overlay")
 
     return b;
   }, [tree, dataPoints, layout, cols, rows]);
