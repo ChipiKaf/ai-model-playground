@@ -140,6 +140,7 @@ class VizBuilderImpl implements VizBuilder {
   }
   
   /**
+   * Returns the SVG string representation of the scene.
    * @deprecated Use `mount` instead
    */
   svg(): string {
