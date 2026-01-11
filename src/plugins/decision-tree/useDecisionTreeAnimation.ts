@@ -22,8 +22,6 @@ export const useDecisionTreeAnimation = (onAnimationComplete?: () => void) => {
   }, [onAnimationComplete]);
 
   useEffect(() => {
-    // When currentStep changes, we trigger the simulation logic.
-    
     // Step 0 is "Initialization" (Start). No movement, just unlock.
     if (currentStep === 0) {
         const timer = setTimeout(() => {

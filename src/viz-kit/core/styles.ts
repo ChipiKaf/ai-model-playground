@@ -60,4 +60,9 @@ export const DEFAULT_VIZ_CSS = `
     fill: #60A5FA;
     transform: scale(1.5);
 }
+
+.viz-data-point {
+  fill: #F59E0B;
+  transition: cx 0.3s ease-out, cy 0.3s ease-out;
+}
 `;

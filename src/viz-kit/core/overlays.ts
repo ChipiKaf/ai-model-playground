@@ -10,6 +10,7 @@ export interface CoreOverlayRenderContext<T = any> {
 
 export interface CoreOverlayRenderer<T = any> {
     render: (ctx: CoreOverlayRenderContext<T>) => string;
+    update?: (ctx: CoreOverlayRenderContext<T>, container: SVGGElement) => void;
 }
 
 export class CoreOverlayRegistry {
@@ -101,6 +102,8 @@ export const gridLabelsOverlay: CoreOverlayRenderer<{
     }
 };
 
+// ... (OverlayRegistry and other exports remain unchanged) ...
+
 // Built-in Overlay: Data Points
 export const dataPointOverlay: CoreOverlayRenderer<{
     points: { id: string; currentNodeId: string; [key: string]: any }[];
@@ -108,7 +111,7 @@ export const dataPointOverlay: CoreOverlayRenderer<{
     render: ({ spec, nodesById }) => {
         const { points } = spec.params;
         let output = '';
-        
+
         points.forEach(point => {
             const node = nodesById.get(point.currentNodeId);
             if (!node) return;
@@ -121,10 +124,68 @@ export const dataPointOverlay: CoreOverlayRenderer<{
             const y = node.pos.y + offsetY;
             
             const cls = spec.className ?? "viz-data-point";
-            output += `<circle cx="${x}" cy="${y}" r="6" class="${cls}" />`;
+            // Important: Add data-id so we can find it later in update()
+            output += `<circle data-id="${point.id}" cx="${x}" cy="${y}" r="6" class="${cls}" />`;
         });
 
         return output;
+    },
+    update: ({ spec, nodesById }, container) => {
+        const { points } = spec.params;
+        const svgNS = "http://www.w3.org/2000/svg";
+        
+        // 1. Map existing elements by data-id
+        const existingMap = new Map<string, SVGElement>();
+        Array.from(container.children).forEach(child => {
+            if (child.tagName === 'circle') {
+                const id = child.getAttribute('data-id');
+                if (id) existingMap.set(id, child as SVGElement);
+            }
+        });
+
+        const processedIds = new Set<string>();
+
+        // 2. Create or Update Points
+        points.forEach(point => {
+             const node = nodesById.get(point.currentNodeId);
+             if (!node) return;
+
+             processedIds.add(point.id);
+
+             const idNum = parseInt(point.id.split('-')[1] || '0', 10);
+             const offsetX = ((idNum % 5) - 2) * 10;
+             const offsetY = ((idNum % 3) - 1) * 10;
+
+             const x = node.pos.x + offsetX;
+             const y = node.pos.y + offsetY;
+
+             let circle = existingMap.get(point.id);
+
+             if (!circle) {
+                 // Create new
+                 circle = document.createElementNS(svgNS, "circle");
+                 circle.setAttribute("data-id", point.id);
+                 circle.setAttribute("r", "6");
+                 container.appendChild(circle);
+             }
+
+             // Update attrs (this triggers CSS transition if class has it)
+             circle.setAttribute("cx", String(x));
+             circle.setAttribute("cy", String(y));
+             
+             const cls = spec.className ?? "viz-data-point";
+             // Only set class if different to avoid potential re-flows (though usually fine)
+             if (circle.getAttribute("class") !== cls) {
+                 circle.setAttribute("class", cls);
+             }
+        });
+
+        // 3. Remove stale points
+        existingMap.forEach((el, id) => {
+            if (!processedIds.has(id)) {
+                el.remove();
+            }
+        });
     }
 };
 

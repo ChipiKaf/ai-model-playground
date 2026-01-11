@@ -453,24 +453,52 @@ class VizBuilderImpl implements VizBuilder {
       });
 
 
-      // --- 3. Reconcile Overlays (Full Re-render) ---
-      // Overlays are often ephemeral (signals), so full re-render of this layer is acceptable/safer
-      overlayLayer.innerHTML = '';
+      // --- 3. Reconcile Overlays (Smart) ---
+      
+      // 1. Map existing overlay groups
+      const existingOverlayGroups = Array.from(overlayLayer.children).filter(el => el.tagName === 'g') as SVGGElement[];
+      const existingOverlaysMap = new Map<string, SVGGElement>();
+      existingOverlayGroups.forEach(el => {
+          const id = el.getAttribute('data-overlay-id');
+          if (id) existingOverlaysMap.set(id, el);
+      });
+
+      const processedOverlayIds = new Set<string>();
+
       if (overlays && overlays.length > 0) {
           overlays.forEach(spec => {
               const renderer = defaultCoreOverlayRegistry.get(spec.id);
               if (renderer) {
-                  const edgesById = new Map(edges.map(e => [e.id, e]));
-                   // Optimization: pass map we already made
-                  const html = renderer.render({ spec, nodesById, edgesById, scene });
-                  const temp = document.createElementNS(svgNS, "g");
-                  temp.innerHTML = html;
-                  while (temp.firstChild) {
-                      overlayLayer.appendChild(temp.firstChild);
+                  const uniqueKey = spec.key || spec.id; 
+                  processedOverlayIds.add(uniqueKey);
+
+                  let group = existingOverlaysMap.get(uniqueKey);
+                  if (!group) {
+                      group = document.createElementNS(svgNS, "g");
+                      group.setAttribute("data-overlay-id", uniqueKey);
+                      group.setAttribute("class", `viz-overlay-${spec.id}`);
+                      overlayLayer.appendChild(group);
+                  }
+
+                  const ctx = { spec, nodesById, edgesById: new Map(edges.map(e => [e.id, e])), scene };
+
+                  if (renderer.update) {
+                      renderer.update(ctx, group);
+                  } else {
+                      // Fallback: full re-render of this overlay's content
+                      group.innerHTML = renderer.render(ctx);
                   }
               }
           });
       }
+
+      // Remove stale overlays
+      existingOverlayGroups.forEach(el => {
+          const id = el.getAttribute('data-overlay-id');
+          if (id && !processedOverlayIds.has(id)) {
+              el.remove();
+          }
+      });
   }
 
   private _renderSceneToSvg(scene: VizScene): string {
