@@ -139,6 +139,9 @@ class VizBuilderImpl implements VizBuilder {
       return this._viewBox;
   }
   
+  /**
+   * @deprecated Use `mount` instead
+   */
   svg(): string {
       const scene = this.build();
       return this._renderSceneToSvg(scene);
@@ -152,7 +155,6 @@ class VizBuilderImpl implements VizBuilder {
   private _renderSceneToDOM(scene: VizScene, container: HTMLElement) {
       const { viewBox, nodes, edges, overlays } = scene;
       const nodesById = new Map(nodes.map(n => [n.id, n]));
-      // const edgesById = new Map(edges.map(e => [e.id, e])); // Unused variable
 
       const svgNS = "http://www.w3.org/2000/svg";
       let svg = container.querySelector("svg") as SVGSVGElement;
@@ -501,6 +503,12 @@ class VizBuilderImpl implements VizBuilder {
       });
   }
 
+  /**
+   * Returns the SVG string representation of the scene.
+   * @deprecated The use of this method is deprecated. Use `mount` instead.
+   * @param scene The scene to render
+   * @returns The SVG string representation of the scene
+   */
   private _renderSceneToSvg(scene: VizScene): string {
       const { viewBox, nodes, edges, overlays } = scene;
       const nodesById = new Map(nodes.map(n => [n.id, n]));
